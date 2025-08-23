@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\PenjualanController;
@@ -36,9 +38,7 @@ Route::post('/update-password', [LoginController::class, 'updatePassword'])->mid
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group( function () {
-    Route::get('/dashboard', function() {
-        return view('homepage.index');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('produk', ProdukController::class);
     Route::resource('penjualan', PenjualanController::class)->only(['index', 'create', 'store', 'destroy']);
     
@@ -55,4 +55,9 @@ Route::middleware('auth')->group( function () {
     Route::get('penjualan/{id}/print', [PenjualanController::class, 'print'])->name('penjualan.print');
     Route::get('penjualan/{id_penjualan}/detail/json', [PenjualanDetailController::class, 'json'])->name('penjualan.detail.json');
 });
+
+Route::middleware(['auth'])->group(function () {
+    Route::resource('admin', AdminController::class)->only(['index', 'edit', 'update', 'destroy']);
+});
+
 

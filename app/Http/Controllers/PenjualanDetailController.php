@@ -147,6 +147,7 @@ class PenjualanDetailController extends Controller
                     'id_produk'    => $produkBaru->id,
                 ],
                 [
+                    'kode_transaksi'=> $penjualan->kode_transaksi,
                     'jumlah'        => $newJumlah,
                     'tanggal'       => $penjualan->tanggal,
                     'tanggal_batal' => $penjualan->tanggal_batal,

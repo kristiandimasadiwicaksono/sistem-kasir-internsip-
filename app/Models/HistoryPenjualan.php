@@ -10,6 +10,7 @@ class HistoryPenjualan extends Model
     protected $table = 'history_penjualan';
     protected $fillable = [
         'id_penjualan',
+        'kode_transaksi',
         'id_produk',
         'jumlah',
         'status',
@@ -19,7 +20,7 @@ class HistoryPenjualan extends Model
     public $timestamps = false;
 
     public function produk(){
-        return $this->belongsTo(Produk::class, 'id_produk');
+        return $this->belongsTo(Produk::class, 'id_produk', 'id');
     }
 
     public function penjualan() {

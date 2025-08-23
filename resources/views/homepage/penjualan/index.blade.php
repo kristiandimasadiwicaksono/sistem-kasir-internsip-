@@ -33,7 +33,7 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th scope="col" class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                ID Penjualan
+                                Kode Transaksi
                             </th>
                             <th scope="col" class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
                                 Tanggal
@@ -53,7 +53,7 @@
                         @forelse($penjualan as $item)
                         <tr class="hover:bg-gray-50 transition-colors duration-200">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 text-center">
-                                #{{ $item->id }}
+                                {{ $item->kode_transaksi }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
                                 {{ \Carbon\Carbon::parse($item->tanggal)->format('d M Y H:i') }}

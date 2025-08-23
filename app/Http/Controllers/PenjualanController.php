@@ -80,9 +80,6 @@ class PenjualanController extends Controller
                     'jumlah'       => $item['jumlah'],
                     'subtotal'     => $subtotal,
                 ]);
-
-                // jika tidak pakai TRIGGER: jangan lupa decrement stok di sini
-                // $produk->decrement('stok', $item['jumlah']);
             }
 
             // 3. Update total transaksi di header
@@ -93,6 +90,7 @@ class PenjualanController extends Controller
             
                 HistoryPenjualan::create([
                     'id_penjualan' => $penjualan->id,
+                    'kode_transaksi' => $penjualan->kode_transaksi,
                     'id_produk' => $produk->id,
                     'jumlah' => $item['jumlah'],
                     'status' => 'SUCCESS',

@@ -12,6 +12,7 @@ class HistoryPenjualanController extends Controller
                     ->orderBy('tanggal','desc')
                     ->get()
                     ->groupBy('id_penjualan');
+                    
         return view('homepage.penjualan.history.index', compact('history'));
     }
 }

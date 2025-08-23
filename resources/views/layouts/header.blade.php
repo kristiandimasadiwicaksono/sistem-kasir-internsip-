@@ -79,7 +79,7 @@
           <div x-show="open" @click.outside="open = false" x-transition.origin.top.right
             class="absolute right-0 mt-2 w-44 bg-white text-gray-800 rounded-lg shadow-lg py-2 z-50">
             @if(Auth::user()->role === 'admin')
-            <a href="{{ route('user.change-password') }}" class="block px-4 py-2 text-sm hover:bg-gray-100">Manajemen Pengguna</a>
+            <a href="{{ route('admin.index') }}" class="block px-4 py-2 text-sm hover:bg-gray-100">Manajemen Pengguna</a>
             @endif
             <a href="{{ route('user.change-password') }}" class="block px-4 py-2 text-sm hover:bg-gray-100">Ganti Kata Sandi</a>
             <form method="POST" action="{{ route('logout') }}">
