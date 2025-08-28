@@ -77,9 +77,9 @@
                                     </a>
 
                                     <!-- Cetak -->
-                                    <a href="{{ route('penjualan.print', $item->id) }}" target="_blank"
+                                    <a href="{{ route('checkout', $item->id) }}" target="_blank"
                                         class="inline-flex items-center px-3 py-1 text-sm font-medium text-green-600 bg-green-100 rounded-full hover:bg-green-200 transition-colors">
-                                        Cetak
+                                        bayar
                                     </a>
 
                                     <!-- Hapus -->

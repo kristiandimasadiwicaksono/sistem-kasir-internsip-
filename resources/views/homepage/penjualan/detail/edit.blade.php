@@ -1,4 +1,4 @@
-@extends('homepage.layouts.main')
+@extends('layouts.main')
 
 @section('title', 'Edit Item Penjualan #' . ($penjualan->id ?? ''))
 

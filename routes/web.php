@@ -1,13 +1,14 @@
 <?php
 
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ProdukController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PenjualanController;
 use App\Http\Controllers\PenjualanDetailController;
 use App\Http\Controllers\HistoryPenjualanController;
-use App\Http\Controllers\LoginController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,4 +61,8 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('admin', AdminController::class)->only(['index', 'edit', 'update', 'destroy']);
 });
 
-
+Route::get('/payment/checkout/{id}', [PaymentController::class, 'checkout'])->name('checkout');
+Route::post('/payment/cash/{id}', [PaymentController::class, 'cash'])->name('payment.cash');
+Route::post('/payment/notification', [PaymentController::class, 'notification'])->name('payment.notification');
+Route::post('/payment/cashless/{id}/success', [PaymentController::class, 'cashlessSuccess'])
+    ->name('payment.cashless.success');

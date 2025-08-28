@@ -85,7 +85,7 @@
                 </a>
                 <button type="submit" 
                    class="py-2.5 px-4 rounded-lg border border-transparent bg-blue-600 text-white font-medium transition duration-300 hover:bg-blue-700">
-                    Simpan Penjualan
+                    Bayar
                 </button>
             </div>
         </form>

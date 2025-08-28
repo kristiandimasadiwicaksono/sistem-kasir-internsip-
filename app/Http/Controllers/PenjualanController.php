@@ -32,7 +32,7 @@ class PenjualanController extends Controller
         $request->validate([
             'products' => 'required|array|min:1',
             'products.*.id_produk' => 'required|exists:produk,id',
-            'products.*.jumlah'    => 'required|integer|min:1',
+            'products.*.jumlah'     => 'required|integer|min:1',
         ]);
 
         // server-side stok validation sebelum transaksi
@@ -59,11 +59,12 @@ class PenjualanController extends Controller
             return redirect()->back()->withInput()->withErrors($stockErrors);
         }
 
-        DB::transaction(function () use ($request) {
+        $penjualan = DB::transaction(function () use ($request) {
             // 1. Buat header penjualan
             $penjualan = Penjualan::create([
                 'tanggal' => now(),
-                'total'   => 0
+                'total'   => 0,
+                'status' => 'PENDING'
             ]);
 
             $total = 0;
@@ -85,6 +86,7 @@ class PenjualanController extends Controller
             // 3. Update total transaksi di header
             $penjualan->update(['total' => $total]);
 
+            // 4. Tambahkan entry ke history_penjualan
             foreach ($request->products as $item) {
                 $produk = Produk::findOrFail($item['id_produk']);
             
@@ -93,14 +95,15 @@ class PenjualanController extends Controller
                     'kode_transaksi' => $penjualan->kode_transaksi,
                     'id_produk' => $produk->id,
                     'jumlah' => $item['jumlah'],
-                    'status' => 'SUCCESS',
+                    'status' => 'PENDING', // Status awal selalu PENDING
                     'tanggal' => now(),
                     'tanggal_batal' => null
                 ]);
             }
+            return $penjualan;
         });
 
-        return redirect()->route('penjualan.index')->with('success', 'Penjualan berhasil disimpan!');
+        return redirect()->route('checkout', $penjualan->id);
     }
 
     // Print view (safe find)
@@ -122,18 +125,15 @@ class PenjualanController extends Controller
                     $produk->increment('stok', $detail->jumlah);
                 }
 
-                        // update history jadi canceled
-                $history = HistoryPenjualan::where('id_penjualan', $penjualan->id)
-                            ->where('id_produk', $detail->id_produk)
-                            ->where('status', 'SUCCESS')
-                            ->first();
+                // update history jadi canceled
+                HistoryPenjualan::where('id_penjualan', $penjualan->id)
+                ->where('id_produk', $detail->id_produk)
+                ->whereIn('status', ['SUCCESS','PENDING'])
+                ->update([
+                    'status' => 'CANCELED',
+                    'tanggal_batal' => now()
+                ]);
 
-                if ($history) {
-                    $history->update([
-                        'status' => 'CANCELED',
-                        'tanggal_batal' => now()
-                    ]);
-                }
             }
 
             // setelah history dicatat, baru hapus penjualan
@@ -147,8 +147,11 @@ class PenjualanController extends Controller
     public function history()
     {
         // ambil data penjualan lengkap sama relasinya
-        $history = Penjualan::with(['details.produk'])->get();
-
+        $history = HistoryPenjualan::with(['produk', 'penjualan'])
+            ->orderBy('tanggal','desc')
+            ->get()
+            ->groupBy('id_penjualan');
+        
         // kirim ke view
         return view('homepage.penjualan.history.index', compact('history'));
     }
