@@ -31,10 +31,10 @@
         </div>
 
         <!-- Meta -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 bg-gray-50 p-6 rounded-xl border border-gray-100">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 bg-gray-50 p-6 rounded-xl border border-gray-100">
             <div class="flex items-center">
-                <div class="text-gray-500 text-sm">ID Penjualan</div>
-                <div class="font-bold text-gray-900 ml-2">#{{ $penjualan->id ?? '-' }}</div>
+                <div class="text-gray-500 text-sm">Kode Transaksi</div>
+                <div class="font-bold text-gray-900 ml-2">{{ $penjualan->kode_transaksi ?? '-' }}</div>
             </div>
             <div class="flex items-center">
                 <div class="text-gray-500 text-sm">Tanggal</div>
@@ -44,18 +44,24 @@
                 <div class="text-gray-500 text-sm">Total</div>
                 <div class="font-bold text-green-600 ml-2 text-xl">Rp {{ number_format($penjualan->total ?? ($penjualan->details->sum('subtotal') ?? 0),0,',','.') }}</div>
             </div>
+            <div class="flex items-center">
+                <div class="text-gray-500 text-sm">Status</div>
+                @php
+                    $statusClass = [
+                        'SUCCESS' => 'bg-green-100 text-green-800',
+                        'PENDING' => 'text-yellow-800',
+                        'CANCELED' => 'bg-red-100 text-red-800',
+                    ][$penjualan->status] ?? 'bg-gray-100 text-gray-800';
+                @endphp
+                <span class="ml-2 py-1 rounded-full text-xs font-semibold {{ $statusClass }}">
+                    {{ $penjualan->status }}
+                </span>
+            </div>
         </div>
 
         <!-- Actions: tambah item -->
         <div class="mb-6 flex justify-between items-center">
             <h3 class="text-lg font-semibold text-gray-800">Daftar Produk</h3>
-            <a href="{{ route('penjualan.detail.create', $penjualan->id) }}"
-               class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg text-sm transition duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Tambah Item
-            </a>
         </div>
 
         <!-- Table detail -->
@@ -68,7 +74,6 @@
                         <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Harga</th>
                         <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Jumlah</th>
                         <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Subtotal</th>
-                        <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
@@ -78,15 +83,7 @@
                             <td class="px-6 py-4 text-sm text-gray-700">{{ optional($detail->produk)->nama_produk ?? '—' }}</td>
                             <td class="px-6 py-4 text-sm text-gray-700 text-right">Rp {{ number_format($detail->harga ?? optional($detail->produk)->harga ?? 0,0,',','.') }}</td>
                             <td class="px-6 py-4 text-sm text-gray-700 text-center">{{ $detail->jumlah ?? 0 }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-700 text-right">Rp {{ number_format($detail->subtotal ?? (($detail->harga ?? optional($detail->produk)->harga ?? 0) * ($detail->jumlah ?? 0)),0,',','.') }}</td>
-                            <td class="px-6 py-4 text-sm text-center space-x-2">
-                                <a href="{{ route('penjualan.detail.edit', [$penjualan->id, $detail->id]) }}" class="text-yellow-600 hover:text-yellow-800 transition-colors">Edit</a>
-                                <form action="{{ url('penjualan/'.$penjualan->id.'/detail/'.$detail->id) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus item ini? Transaksi tidak dapat dikembalikan.')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">Hapus</button>
-                                </form>
-                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700 text-right font-semibold">Rp {{ number_format($detail->subtotal ?? (($detail->harga ?? optional($detail->produk)->harga ?? 0) * ($detail->jumlah ?? 0)),0,',','.') }}</td>
                         </tr>
                     @empty
                         <tr>

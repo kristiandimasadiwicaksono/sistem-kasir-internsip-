@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\HistoryPenjualan;
+use Midtrans\Snap;
+use Midtrans\Config;
+use App\Models\Produk;
 use App\Models\Penjualan;
-use App\Services\MidtransService;
+use Midtrans\Notification;
 use Illuminate\Http\Request;
+use App\Models\PenjualanDetail;
+use App\Models\HistoryPenjualan;
+use App\Services\MidtransService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Midtrans\Config;
-use Midtrans\Notification;
-use Midtrans\Snap;
 
 class PaymentController extends Controller
 {
@@ -167,27 +169,22 @@ class PaymentController extends Controller
     public function cash(Request $request, $id)
     {
         $penjualan = Penjualan::findOrFail($id);
-        
-        // Cek apakah sudah dibayar sebelumnya
+
         if ($penjualan->status === 'SUCCESS') {
             return response()->json(['error' => 'Transaksi ini sudah berhasil dibayar'], 400);
         }
-        
-        $dibayar = $request->dibayar;
 
+        $dibayar = (int) $request->dibayar;
         if ($dibayar < $penjualan->total) {
             return response()->json(['error' => 'Uang kurang'], 400);
         }
 
+        $kembalian = $dibayar - $penjualan->total;
+
         DB::transaction(function () use ($penjualan) {
-            // Update status menjadi SUCCESS
             $penjualan->update(['status' => 'SUCCESS']);
+            HistoryPenjualan::where('id_penjualan', $penjualan->id)->update(['status' => 'SUCCESS']);
 
-            // Update status history
-            HistoryPenjualan::where('id_penjualan', $penjualan->id)
-                ->update(['status' => 'SUCCESS']);
-
-            // KURANGI STOK SETELAH PEMBAYARAN CASH BERHASIL
             foreach ($penjualan->details as $detail) {
                 $produk = $detail->produk;
                 if ($produk) {
@@ -198,23 +195,18 @@ class PaymentController extends Controller
 
         return response()->json([
             'success' => true,
-            'print_url' => route('penjualan.print', $penjualan->id),
-            'redirect_url' => route('penjualan.index')
+            'redirect_url' => route('payment.success', ['id' => $penjualan->id, 'kembalian' => $kembalian]),
         ]);
     }
 
-    public function cashlessSuccess($id) {
+    public function cashlessSuccess($id)
+    {
         $penjualan = Penjualan::findOrFail($id);
 
         DB::transaction(function () use ($penjualan) {
-            // Update status menjadi SUCCESS
             $penjualan->update(['status' => 'SUCCESS']);
-            
-            // Update status history
-            HistoryPenjualan::where('id_penjualan', $penjualan->id)
-                ->update(['status' => 'SUCCESS']);
+            HistoryPenjualan::where('id_penjualan', $penjualan->id)->update(['status' => 'SUCCESS']);
 
-            // KURANGI STOK SETELAH PEMBAYARAN CASHLESS BERHASIL
             foreach ($penjualan->details as $detail) {
                 $produk = $detail->produk;
                 if ($produk) {
@@ -225,8 +217,97 @@ class PaymentController extends Controller
 
         return response()->json([
             'success' => true,
-            'print_url' => route('penjualan.print', $penjualan->id),
-            'redirect_url' => route('penjualan.index')
+            'redirect_url' => route('payment.success', $penjualan->id),
         ]);
+    }
+
+    public function edit($id_penjualan) {
+        $penjualan = Penjualan::with('details.produk')->findOrFail($id_penjualan);
+        $produk    = Produk::orderBy('nama_produk')->get();
+
+        return view('homepage.penjualan.payment-edit', compact('penjualan','produk'));
+    }
+
+    public function store(Request $request, $penjualanId)
+    {
+        $penjualan = Penjualan::with('details')->findOrFail($penjualanId);
+
+        // Ambil only rows yang terisi (punya id_produk & jumlah)
+        $raw = collect($request->input('products', []))
+            ->filter(fn ($row) => !empty($row['id_produk']) && !empty($row['jumlah']))
+            ->values();
+
+        if ($raw->isEmpty()) {
+            return back()->withErrors(['products' => 'Minimal 1 produk harus dipilih.'])->withInput();
+        }
+
+        // Gabungkan baris duplikat (produk sama dijumlahkan)
+        $submitted = $raw->groupBy('id_produk')->map(function ($rows, $idProduk) {
+            return [
+                'id_produk' => (int)$idProduk,
+                'jumlah'    => (int)collect($rows)->sum('jumlah'),
+            ];
+        })->values();
+
+        // Validasi array
+        $request->merge(['products' => $submitted->all()]);
+        $validated = $request->validate([
+            'products' => 'required|array|min:1',
+            'products.*.id_produk' => 'required|exists:produk,id',
+            'products.*.jumlah' => 'required|integer|min:1',
+        ]);
+
+        DB::transaction(function () use ($penjualan, $submitted) {
+            // Cek stok untuk tiap produk (total yang diminta pada penjualan ini)
+            foreach ($submitted as $row) {
+                $produk = Produk::findOrFail($row['id_produk']);
+
+                // Jumlah baru yang ingin disimpan pada penjualan ini
+                $jumlahBaru = (int)$row['jumlah'];
+
+                if ($jumlahBaru > $produk->stok) {
+                    abort(302, back()->withErrors([
+                        'stok' => 'Jumlah "'.$produk->nama_produk.'" ('.$jumlahBaru.') melebihi stok ('.$produk->stok.').'
+                    ])->withInput()->getTargetUrl());
+                }
+            }
+
+            // Sinkronkan detail:
+            // 1) Hapus detail yang tidak ada di submit (user sudah remove di UI)
+            $submittedIds = $submitted->pluck('id_produk')->all();
+            PenjualanDetail::where('id_penjualan', $penjualan->id)
+                ->whereNotIn('id_produk', $submittedIds)
+                ->delete();
+
+            // 2) Upsert semua baris yang dikirim
+            foreach ($submitted as $row) {
+                $produk = Produk::findOrFail($row['id_produk']);
+
+                $detail = PenjualanDetail::firstOrNew([
+                    'id_penjualan' => $penjualan->id,
+                    'id_produk'    => $produk->id,
+                ]);
+
+                $detail->jumlah   = (int)$row['jumlah'];
+                $detail->subtotal = $detail->jumlah * (int)$produk->harga;
+                $detail->save();
+            }
+
+            // 3) Recalculate total penjualan
+            $total = PenjualanDetail::where('id_penjualan', $penjualan->id)->sum('subtotal');
+            $penjualan->update(['total' => (int)$total]);
+        });
+
+        return redirect()->route('checkout', $penjualan->id)
+            ->with('success', 'Produk berhasil disimpan.');
+    }
+    public function successPage($id, Request $request)
+    {
+        $penjualan = Penjualan::findOrFail($id);
+
+        // Ambil nilai kembalian dari query string (hanya untuk cash)
+        $kembalian = $request->query('kembalian', null);
+
+        return view('homepage.penjualan.payment-success', compact('penjualan', 'kembalian'));
     }
 }

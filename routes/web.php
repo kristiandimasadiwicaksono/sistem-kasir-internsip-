@@ -22,8 +22,12 @@ use App\Http\Controllers\HistoryPenjualanController;
 */
 
 Route::get('/', function () {
+    return redirect()->route('login');
+});
+
+Route::get('/login', function () {
     return view('auth.login');
-}) ->name('login')->middleware('guest');
+})->name('login')->middleware('guest');
 
 Route::post('/login', [LoginController::class, 'authenticate'])->name('login.post');
 
@@ -61,8 +65,10 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('admin', AdminController::class)->only(['index', 'edit', 'update', 'destroy']);
 });
 
+Route::get('/payment/{id}/edit', [PaymentController::class, 'edit'])->name('payment-edit');
 Route::get('/payment/checkout/{id}', [PaymentController::class, 'checkout'])->name('checkout');
 Route::post('/payment/cash/{id}', [PaymentController::class, 'cash'])->name('payment.cash');
 Route::post('/payment/notification', [PaymentController::class, 'notification'])->name('payment.notification');
-Route::post('/payment/cashless/{id}/success', [PaymentController::class, 'cashlessSuccess'])
-    ->name('payment.cashless.success');
+Route::post('/payment/cashless/{id}/success', [PaymentController::class, 'cashlessSuccess'])->name('payment.cashless.success');
+Route::post('/payment/{penjualan}/store', [PaymentController::class, 'store'])->name('payment.store');
+Route::get('/payment/success/{id}', [PaymentController::class, 'successPage'])->name('payment.success');
