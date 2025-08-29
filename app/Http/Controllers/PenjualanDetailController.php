@@ -45,6 +45,13 @@ class PenjualanDetailController extends Controller
         DB::transaction(function () use ($aggregated, $id_penjualan) {
             $penjualan = Penjualan::findOrFail($id_penjualan);
 
+            // Reset status penjualan jadi PENDING
+            if ($penjualan->status !== 'PENDING') {
+                $penjualan->update(['status' => 'PENDING']);
+                HistoryPenjualan::where('id_penjualan', $penjualan->id)
+                                ->update(['status' => 'PENDING']);
+            }
+
             foreach ($aggregated as $id_produk => $qtyToAdd) {
                 $produk = Produk::findOrFail($id_produk);
 
@@ -53,19 +60,16 @@ class PenjualanDetailController extends Controller
                             ->first();
 
                 $existingJumlah = $existing ? (int)$existing->jumlah : 0;
-                $stokTersedia = $produk->stok ?? 0;
 
-                $qtyFinal = min($qtyToAdd + $existingJumlah, $stokTersedia) - $existingJumlah;
-                if ($qtyFinal <= 0) continue;
-
-                $newJumlah = $existingJumlah + $qtyFinal;
+                // Tambahkan jumlah tanpa mengurangi stok
+                $newJumlah = $existingJumlah + $qtyToAdd;
                 $subtotalBaru = $produk->harga * $newJumlah;
 
                 if ($existing) {
                     $penjualan->decrement('total', $existing->subtotal ?? 0);
 
                     $existing->update([
-                        'jumlah'   => $newJumlah,
+                        'jumlah' => $newJumlah,
                         'subtotal' => $subtotalBaru,
                     ]);
 
@@ -73,9 +77,9 @@ class PenjualanDetailController extends Controller
                 } else {
                     PenjualanDetail::create([
                         'id_penjualan' => $penjualan->id,
-                        'id_produk'    => $produk->id,
-                        'jumlah'       => $qtyFinal,
-                        'subtotal'     => $subtotalBaru,
+                        'id_produk' => $produk->id,
+                        'jumlah' => $newJumlah,
+                        'subtotal' => $subtotalBaru,
                     ]);
 
                     $penjualan->increment('total', $subtotalBaru);
@@ -84,13 +88,13 @@ class PenjualanDetailController extends Controller
                 HistoryPenjualan::updateOrCreate(
                     [
                         'id_penjualan' => $penjualan->id,
-                        'id_produk'    => $produk->id,
+                        'id_produk' => $produk->id,
                     ],
                     [
-                        'jumlah'        => $newJumlah,
-                        'tanggal'       => $penjualan->tanggal,
+                        'jumlah' => $newJumlah,
+                        'tanggal' => $penjualan->tanggal,
                         'tanggal_batal' => $penjualan->tanggal_batal,
-                        'status'        => 'SUCCESS',
+                        'status' => 'PENDING', // ⚠️ Ubah jadi PENDING
                     ]
                 );
             }
@@ -110,53 +114,64 @@ class PenjualanDetailController extends Controller
 
     public function update(Request $request, $id_penjualan, $id_detail)
     {
-        $detail = PenjualanDetail::findOrFail($id_detail);
-        $request->validate([
-            'id_produk' => 'required|exists:produk,id',
-            'jumlah' => 'required|integer|min:0', // boleh 0
-        ]);
+        $detail = PenjualanDetail::with('produk','penjualan')->findOrFail($id_detail);
+        $produk = $detail->produk;
 
-        DB::transaction(function () use ($request, $id_penjualan, $id_detail) {
-            $penjualan = Penjualan::findOrFail($id_penjualan);
-            $detail    = PenjualanDetail::findOrFail($id_detail);
+        $jumlahBaru = (int) $request->jumlah;
+        $jumlahLama = $detail->jumlah;
+        $selisih    = $jumlahBaru - $jumlahLama;
 
-            $produkBaru = Produk::findOrFail($request->id_produk);
-            $newJumlah  = (int)$request->jumlah;
+        // Hanya validasi stok di halaman
+        if ($selisih > 0 && $produk->stok < $selisih) {
+            return redirect()->back()
+                            ->withInput()
+                            ->withErrors(["jumlah" => "Stok {$produk->nama_produk} tidak cukup. Tersedia: {$produk->stok}"]);
+        }
 
-            $stokTotal = ($produkBaru->stok ?? 0) + $detail->jumlah;
-            if ($newJumlah > $stokTotal) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'jumlah' => ["Jumlah tidak boleh melebihi total stok yang tersedia ({$stokTotal})."]
-                ]);
+
+        // Update stok & detail
+        DB::transaction(function () use ($detail, $produk, $jumlahBaru) {
+            $penjualan = $detail->penjualan;
+
+            // Ambil jumlah awal yang sudah dibayar
+            $historyAwal = HistoryPenjualan::where('id_penjualan', $penjualan->id)
+                            ->where('id_produk', $produk->id)
+                            ->orderBy('tanggal', 'asc')
+                            ->first();
+
+            $jumlahAwal = $historyAwal->jumlah ?? $detail->jumlah;
+
+            $selisih = $jumlahBaru - $detail->jumlah;
+
+            // Update stok hanya jika status sebelumnya SUCCESS
+            if ($penjualan->status === 'SUCCESS') {
+                if ($selisih > 0) $produk->decrement('stok', $selisih);
+                elseif ($selisih < 0) $produk->increment('stok', abs($selisih));
             }
 
-            $penjualan->decrement('total', $detail->subtotal ?? 0);
-            $subtotalBaru = ($produkBaru->harga ?? 0) * $newJumlah;
-
+            // Update detail dan total
             $detail->update([
-                'id_produk' => $produkBaru->id,
-                'jumlah'    => $newJumlah,
-                'subtotal'  => $subtotalBaru,
+                'jumlah' => $jumlahBaru,
+                'subtotal' => $produk->harga * $jumlahBaru,
             ]);
 
-            $penjualan->increment('total', $subtotalBaru);
+            $penjualan->update(['total' => $penjualan->details()->sum('subtotal')]);
 
-            HistoryPenjualan::updateOrCreate(
-                [
-                    'id_penjualan' => $penjualan->id,
-                    'id_produk'    => $produkBaru->id,
-                ],
-                [
-                    'kode_transaksi'=> $penjualan->kode_transaksi,
-                    'jumlah'        => $newJumlah,
-                    'tanggal'       => $penjualan->tanggal,
-                    'tanggal_batal' => $penjualan->tanggal_batal,
-                    'status'        => 'SUCCESS',
-                ]
-            );
+            // Jika jumlahBaru > jumlahAwal -> status PENDING
+            if ($jumlahBaru > $jumlahAwal && $penjualan->status !== 'PENDING') {
+                $penjualan->update(['status' => 'PENDING']);
+                HistoryPenjualan::where('id_penjualan', $penjualan->id)
+                                ->update(['status' => 'PENDING']);
+            }
+
+            // Update history
+            HistoryPenjualan::where('id_penjualan', $penjualan->id)
+                            ->where('id_produk', $produk->id)
+                            ->update(['jumlah' => $jumlahBaru]);
         });
 
-        return redirect()->route('penjualan.detail', $id_penjualan)->with('success', 'Detail penjualan berhasil diupdate');
+        return redirect()->route('penjualan.detail', $detail->id_penjualan)
+                        ->with('success', 'Detail penjualan berhasil diupdate.');
     }
 
     public function destroy($id_penjualan, $id_detail)

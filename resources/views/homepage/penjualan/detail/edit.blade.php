@@ -13,18 +13,7 @@
                 Untuk transaksi <strong>#{{ $penjualan->id }}</strong>
             </p>
         </div>
-
-        {{-- Tampilkan error umum --}}
-        @if ($errors->any())
-            <div class="mb-4 text-sm text-red-600">
-                <ul>
-                    @foreach ($errors->all() as $err)
-                        <li>{{ $err }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
+        
         <form method="POST" action="{{ route('penjualan.detail.update', [$penjualan->id, $detail->id]) }}" id="form-edit-item">
             @csrf
             @method('PUT')

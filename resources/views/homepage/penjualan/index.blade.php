@@ -76,11 +76,18 @@
                                         Detail
                                     </a>
 
-                                    <!-- Cetak -->
-                                    <a href="{{ route('checkout', $item->id) }}" target="_blank"
-                                        class="inline-flex items-center px-3 py-1 text-sm font-medium text-green-600 bg-green-100 rounded-full hover:bg-green-200 transition-colors">
-                                        bayar
-                                    </a>
+                                    @if($item->status === 'SUCCESS')
+                                        <button 
+                                            class="inline-flex items-center px-3 py-1 text-sm font-medium text-gray-400 bg-gray-200 rounded-full cursor-not-allowed"
+                                            disabled>
+                                            Bayar
+                                        </button>
+                                    @else
+                                        <a href="{{ route('checkout', $item->id) }}"
+                                            class="inline-flex items-center px-3 py-1 text-sm font-medium text-green-600 bg-green-100 rounded-full hover:bg-green-200 transition-colors">
+                                            Bayar
+                                        </a>
+                                    @endif
 
                                     <!-- Hapus -->
                                     <form action="{{ route('penjualan.destroy', $item->id) }}" method="POST"

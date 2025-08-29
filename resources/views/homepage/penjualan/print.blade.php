@@ -49,7 +49,6 @@
         <strong>Total</strong>
         <strong>{{ number_format($penjualan->total,0,',','.') }}</strong>
     </div>
-    <p>Status: {{ $penjualan->status }}</p>
     <div class="border-top"></div>
 
     <div class="text-center">

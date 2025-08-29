@@ -60,16 +60,15 @@ class PenjualanController extends Controller
         }
 
         $penjualan = DB::transaction(function () use ($request) {
-            // 1. Buat header penjualan
             $penjualan = Penjualan::create([
                 'tanggal' => now(),
                 'total'   => 0,
-                'status' => 'PENDING'
+                'status' => 'PENDING' // ✅ Status awal PENDING
             ]);
 
             $total = 0;
 
-            // 2. Simpan detail penjualan
+            // Simpan detail penjualan (TANPA mengurangi stok)
             foreach ($request->products as $item) {
                 $produk   = Produk::findOrFail($item['id_produk']);
                 $subtotal = $produk->harga * $item['jumlah'];
@@ -100,13 +99,13 @@ class PenjualanController extends Controller
                     'tanggal_batal' => null
                 ]);
             }
+                    
             return $penjualan;
         });
 
         return redirect()->route('checkout', $penjualan->id);
     }
 
-    // Print view (safe find)
     public function print($id)
     {
         $penjualan = Penjualan::with('details.produk')->findOrFail($id);
@@ -118,23 +117,23 @@ class PenjualanController extends Controller
         DB::transaction(function () use ($id) {
             $penjualan = Penjualan::with('details')->findOrFail($id);
 
-            foreach ($penjualan->details as $detail) {
-                // kembalikan stok kalau produk masih ada
-                $produk = Produk::find($detail->id_produk);
-                if ($produk) {
-                    $produk->increment('stok', $detail->jumlah);
+            // kembalikan stok jika status SUCCESS
+            if ($penjualan->status === 'SUCCESS') {
+                foreach ($penjualan->details as $detail) {
+                    $produk = $detail->produk;
+                    if ($produk) {
+                        $produk->increment('stok', $detail->jumlah);
+                    }
                 }
+            }
 
-                // update history jadi canceled
-                HistoryPenjualan::where('id_penjualan', $penjualan->id)
-                ->where('id_produk', $detail->id_produk)
+            // Update history jadi canceled
+            HistoryPenjualan::where('id_penjualan', $penjualan->id)
                 ->whereIn('status', ['SUCCESS','PENDING'])
                 ->update([
                     'status' => 'CANCELED',
                     'tanggal_batal' => now()
                 ]);
-
-            }
 
             // setelah history dicatat, baru hapus penjualan
             $penjualan->delete();

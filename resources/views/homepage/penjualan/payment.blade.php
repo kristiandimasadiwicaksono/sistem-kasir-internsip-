@@ -118,33 +118,33 @@
         inputKembalian.value = kembali >= 0 ? "Rp " + kembali.toLocaleString() : "-";
     });
 
-    // Snap popup (Cashless)
-// Di dalam script tag di payment.blade.php
+    // ✅ FIXED: Snap popup untuk Cashless Payment
+    document.getElementById('pay-button').addEventListener('click', function (e) {
+        e.preventDefault();
 
-document.getElementById('pay-button').addEventListener('click', function (e) {
-    e.preventDefault();
-
-    snap.pay('{{ $snapToken }}', {
-        onSuccess: function(result) {
-            console.log('Cashless Success:', result);
-
-            window.open("{{ route('penjualan.print', $penjualan->id) }}", '_blank');
-            window.location.href = "{{ route('penjualan.index') }}";
-        },
-        onPending: function(result) {
-            console.log('Pending:', result);
-            alert("Pembayaran sedang diproses, silakan tunggu.");
-        },
-        onError: function(result) {
-            console.log('Error:', result);
-            alert("Pembayaran gagal, silakan coba lagi.");
-        },
-        onClose: function() {
-            alert('Popup ditutup tanpa menyelesaikan pembayaran.');
-        }
+        snap.pay('{{ $snapToken }}', {
+            onSuccess: function(result) {
+                console.log('Cashless Payment Success:', result);
+                
+                // ✅ Pembayaran berhasil - Midtrans akan otomatis kirim notifikasi ke server
+                // Buka print receipt dan redirect
+                window.open("{{ route('penjualan.print', $penjualan->id) }}", '_blank');
+                window.location.href = "{{ route('penjualan.index') }}";
+            },
+            onPending: function(result) {
+                console.log('Payment Pending:', result);                
+            },
+            onError: function(result) {
+                console.log('Payment Error:', result);
+                alert("Pembayaran gagal, silakan coba lagi.");
+            },
+            onClose: function() {
+                console.log('Payment popup closed');
+            }
+        });
     });
-});
 
+    // Cash Payment Handler
     formCash.addEventListener('submit', function(e) {
         e.preventDefault();
 
