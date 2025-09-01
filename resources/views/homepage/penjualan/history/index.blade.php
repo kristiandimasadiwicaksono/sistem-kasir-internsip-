@@ -59,7 +59,7 @@
                                 <td class="px-6 py-4">
                                     <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
                                         @foreach($items as $item)
-                                            <li>{{ optional($item->produk)->nama_produk ?? '-' }}</li>
+                                            <li>{{ optional($item->produk)->nama_produk ?? '-' }} (x{{ $item->jumlah }})</li>
                                         @endforeach
                                     </ul>
                                 </td>

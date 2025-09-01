@@ -34,18 +34,6 @@
           @enderror
         </div>
 
-        <!-- Stok -->
-        <div>
-          <label for="stok" class="block text-sm font-medium text-gray-700">Stok</label>
-          <input id="stok" name="stok" type="number" min="0"
-            value="{{ old('stok', $produk->stok) }}" 
-            class="mt-1 block w-full border border-gray-200 shadow-2xs rounded-lg py-2 px-3 sm:text-sm focus:border-blue-500 focus:ring-blue-500" 
-            placeholder="Masukkan jumlah stok" required>
-          @error('stok')
-            <div class="mt-1 text-xs text-red-500">Stok tidak valid</div>
-          @enderror
-        </div>
-
         <!-- Harga -->
         <div>
           <label for="harga" class="block text-sm font-medium text-gray-700">Harga</label>

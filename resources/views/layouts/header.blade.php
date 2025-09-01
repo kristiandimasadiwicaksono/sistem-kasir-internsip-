@@ -62,6 +62,16 @@
         History
       </a>
       @endif
+      <div id="menu" class="hidden w-full md:flex md:w-auto flex-col md:flex-row gap-4 md:gap-7 mt-5 md:mt-0">
+        @if(Auth::user()->role === 'admin')
+        <a class="font-semibold text-white/80 hover:text-white transition-all duration-300 transform hover:scale-110 hover:bg-white/20 px-3 py-2 rounded-lg relative {{ request()->routeIs('restock.*') ? 'bg-white/30 text-white' : '' }}" href="{{ route('restock.index') }}">
+          Restock
+          <span class="absolute top-0 right-0 inline-flex items-center justify-center size-5 text-xs font-bold text-white bg-red-500 rounded-full -translate-y-1/2 translate-x-1/2">
+            5
+          </span>
+        </a>
+        @endif
+      </div>
 
       <!-- User Dropdown -->
       <div class="flex items-center gap-x-2 md:ms-auto">
@@ -79,6 +89,7 @@
           <div x-show="open" @click.outside="open = false" x-transition.origin.top.right
             class="absolute right-0 mt-2 w-44 bg-white text-gray-800 rounded-lg shadow-lg py-2 z-50">
             @if(Auth::user()->role === 'admin')
+            <a href="{{ route('suppliers.create') }}" class="block px-4 py-2 text-sm hover:bg-gray-100">Manajemen Supplier</a>
             <a href="{{ route('admin.index') }}" class="block px-4 py-2 text-sm hover:bg-gray-100">Manajemen Pengguna</a>
             @endif
             <a href="{{ route('user.change-password') }}" class="block px-4 py-2 text-sm hover:bg-gray-100">Ganti Kata Sandi</a>

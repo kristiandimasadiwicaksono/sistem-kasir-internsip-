@@ -21,6 +21,8 @@ class DashboardController extends Controller
     
         $totalProduk = Produk::count();
 
+        $lowStockProducts = Produk::where('stok', '<=', 5)->get();
+
         $totalTransaksi = HistoryPenjualan::distinct('kode_transaksi')->count('kode_transaksi');
         
         $penjualanBulanIni = HistoryPenjualan::where('status', 'SUCCESS')
@@ -49,7 +51,8 @@ class DashboardController extends Controller
             'totalTransaksi',
             'penjualanBulanIni',
             'topProduk',
-            'aktivitasTerbaru'
+            'aktivitasTerbaru',
+            'lowStockProducts'
         ));
     }
 }

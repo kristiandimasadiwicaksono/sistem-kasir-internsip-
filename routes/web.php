@@ -5,6 +5,8 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\RestockController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PenjualanController;
 use App\Http\Controllers\PenjualanDetailController;
@@ -72,3 +74,8 @@ Route::post('/payment/notification', [PaymentController::class, 'notification'])
 Route::post('/payment/cashless/{id}/success', [PaymentController::class, 'cashlessSuccess'])->name('payment.cashless.success');
 Route::post('/payment/{penjualan}/store', [PaymentController::class, 'store'])->name('payment.store');
 Route::get('/payment/success/{id}', [PaymentController::class, 'successPage'])->name('payment.success');
+Route::middleware(['auth'])->group(function () {
+    Route::resource('restock', RestockController::class)->except(['edit', 'update']);
+});
+Route::get('/supplier/create', [SupplierController::class, 'create'])->name('suppliers.create');
+Route::post('/supplier', [SupplierController::class, 'store'])->name('suppliers.store');
