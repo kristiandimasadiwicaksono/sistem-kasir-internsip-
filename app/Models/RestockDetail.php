@@ -11,8 +11,12 @@ class RestockDetail extends Model
     protected $fillable = [
         'id_restock',
         'id_produk',
-        'jumlah'
+        'jumlah_dipesan',
+        'jumlah_diterima',
+        'status_penerimaan',
     ];
+
+    public $timestamps = false;
 
     public function restock() {
         return $this->belongsTo(Restock::class, 'id_restock');

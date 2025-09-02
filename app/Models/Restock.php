@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Restock extends Model
 {
@@ -11,8 +11,10 @@ class Restock extends Model
     protected $fillable = [
         'id_supplier',
         'tanggal',
-        'keterangan'
+        'status_pembayaran',
     ];
+
+    public $timestamps = false;
 
     public function supplier() {
         return $this->belongsTo(Supplier::class, 'id_supplier');

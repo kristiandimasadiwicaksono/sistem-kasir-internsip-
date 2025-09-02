@@ -31,19 +31,17 @@ class RestockController extends Controller
     public function store (Request $request) {
         $request->validate([
             'id_supplier' => 'required|exists:supplier,id',
-            'metode_pembayaran' => 'required|in:Tunai,Kredit',
+            'status_pembayaran' => 'required|in:LUNAS,BELUM_LUNAS',
             'products' => 'required|array|min:1',
             'products.*.id_produk' => 'required|exists:produk,id',
-            'products.*.jumlah' => 'required|integer|min:1',
+            'products.*.jumlah_dipesan' => 'required|integer|min:1',
         ]);
 
         DB::transaction(function () use ($request) {
             $restock = Restock::create([
-                'id_supplier' => $request->id_supplier,
-                'tanggal' => now(),
-                'metode_pembayaran' => $request->metode_pembayaran,
-                'keterangan' => $request->keterangan,
-                'status_pembayaran' => 'Belum Diterima Semua.',
+                'id_supplier'       => $request->id_supplier,
+                'tanggal'           => now(),
+                'status_pembayaran' => $request->status_pembayaran,
             ]);
 
             foreach ($request->products as $item) {
@@ -51,10 +49,12 @@ class RestockController extends Controller
                     'id_restock'        => $restock->id,
                     'id_produk'         => $item['id_produk'],
                     'jumlah_dipesan'    => $item['jumlah_dipesan'],
-                    'jumlah_diterima'   => 0
+                    'jumlah_diterima'   => 0,
+                    'status_penerimaan' => 'BELUM_DITERIMA' // ✅ Set default status
                 ]);
             }
         });
+        
         return redirect()->route('restock.index')->with('success', 'Pesanan restock berhasil dibuat. Stok akan bertambah setelah barang diterima.');
     }
 
@@ -65,41 +65,42 @@ class RestockController extends Controller
 
     public function receive(Request $request, $id) {
         $request->validate([
-            'id_produk' => 'required|exists:produk,id',
-            'jumlah_diterima' => 'required|integer|min:1',
+            'id_produk' => 'required|array',
+            'id_produk.*' => 'exists:produk,id',
+            'jumlah_diterima' => 'required|array',
+            'jumlah_diterima.*' => 'integer|min:1',
         ]);
 
         DB::transaction(function () use ($request, $id){
-            $restockDetail = RestockDetail::where('id_restock', $id)
-                                ->where('id_produk', $request->id_produk)
-                                ->firstOrFail();
-
-            $orderedQuantity  = $restockDetail->jumlah_dipesan;
-            $receivedQuantity = $restockDetail->jumlah_diterima + $request->jumlah_diterima;
-
-            if ($receivedQuantity > $orderedQuantity) {
-                return back()->with('error', 'Jumlah yang diterima melebihi jumlah yang dipesan');
-            }
-
-            $restockDetail->update(['jumlah_diterima' => $receivedQuantity]);
-            $restockDetail->produk->increment('stok', $request->jumlah_diterima);
-
-            $restock = Restock::with('details')->findOrFail($id);
-            $isFullyReceived = true;
-            foreach ($restock->details as $detail) {
-                if ($detail->jumlah_diterima < $detail->jumlah_dipesan) {
-                    $isFullyReceived = false;
-                    break;
-                }
-            }
+            $restock = Restock::with('details.produk')->findOrFail($id);
             
-            if($isFullyReceived) {
-                $restock->update(['status_penerimaan' => 'Sudah Diterima Semua']);
-            }else{
-                $restock->update(['status_penerimaan' => 'Penerimaan Parsial']);
+            foreach ($request->id_produk as $index => $produkId) {
+                $jumlah = $request->jumlah_diterima[$index];
+
+                $restockDetail = RestockDetail::where('id_restock', $id)
+                                    ->where('id_produk', $produkId)
+                                    ->firstOrFail();
+
+                $orderedQuantity  = $restockDetail->jumlah_dipesan;
+                $receivedQuantity = $restockDetail->jumlah_diterima + $jumlah;
+
+                if ($receivedQuantity > $orderedQuantity) {
+                    throw new \Exception("Jumlah diterima melebihi jumlah dipesan untuk produk {$restockDetail->produk->nama_produk}");
+                }
+
+                // ✅ Update status di RestockDetail
+                $status = ($receivedQuantity >= $orderedQuantity) ? 'SELESAI' : 'SEBAGIAN';
+                
+                $restockDetail->update([
+                    'jumlah_diterima' => $receivedQuantity,
+                    'status_penerimaan' => $status
+                ]);
+                
+                $restockDetail->produk->increment('stok', $jumlah);
             }
         });
-        return back()->with('success', 'Penerimaan barang berhasil dicatat dan stok telah diperbarui');
+
+        return back()->with('success', 'Penerimaan barang berhasil dicatat dan stok diperbarui.');
     }
 
     public function destroy($id) {

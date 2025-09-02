@@ -19,23 +19,19 @@ Tambah Supplier
                 <tr>
                     <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">ID</th>
                     <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Nama Supplier</th>
-                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Nama Kontak</th>
-                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Telepon</th>
+                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Kontak</th>
                     <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Alamat</th>
-                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Email</th>
-                    <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-                {{-- @forelse($suppliers as $supplier)
+                @forelse($suppliers as $supplier)
                 <tr class="hover:bg-gray-100 transition-colors duration-200">
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{{ $supplier->id }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $supplier->nama_supplier }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $supplier->nama_kontak }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $supplier->telepon }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $supplier->nama }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $supplier->kontak }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $supplier->alamat }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $supplier->email }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" class="inline-block" onsubmit="handleDelete(event)">
                             @csrf
                             @method('DELETE')
@@ -49,7 +45,7 @@ Tambah Supplier
                 <tr>
                     <td colspan="7" class="text-center py-4 text-gray-500">Tidak ada data supplier.</td>
                 </tr>
-                @endforelse --}}
+                @endforelse
             </tbody>
         </table>
     </div>

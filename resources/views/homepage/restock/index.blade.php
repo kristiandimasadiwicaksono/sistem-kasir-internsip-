@@ -19,37 +19,67 @@
                 <table class="min-w-full bg-white divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">ID Restock</th>
                             <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Tanggal</th>
                             <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Supplier</th>
-                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Jumlah Produk Dipesan</th>
+                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Jumlah Dipesan</th>
+                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Jumlah Diterima</th>
                             <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Pembayaran</th>
                             <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Detail Produk</th>
                             <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($restocks as $restock)
                         <tr class="hover:bg-gray-100 transition-colors duration-200">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{{ $restock->id }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ \Carbon\Carbon::parse($restock->tanggal)->format('d M Y') }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $restock->supplier->nama }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $restock->details->sum('jumlah_dipesan') }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $restock->metode_pembayaran }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $restock->details->sum('jumlah_diterima') }}</td>                            
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    @if($restock->status_penerimaan == 'Sudah Diterima Semua')
-                                        bg-green-100 text-green-800
-                                    @elseif($restock->status_penerimaan == 'Penerimaan Parsial')
-                                        bg-yellow-100 text-yellow-800
-                                    @else
-                                        bg-red-100 text-red-800
-                                    @endif">
-                                    {{ $restock->status_penerimaan }}
+                                @if($restock->status_pembayaran === 'LUNAS')
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full">Lunas</span>
+                                @else
+                                    <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full">Belum Lunas</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                                @php
+                                    // ✅ Hitung status berdasarkan restock_detail
+                                    $totalOrdered = $restock->details->sum('jumlah_dipesan');
+                                    $totalReceived = $restock->details->sum('jumlah_diterima');
+                                    
+                                    if ($totalReceived == 0) {
+                                        $overallStatus = 'BELUM_DITERIMA';
+                                        $statusClass = 'bg-red-100 text-red-800';
+                                    } elseif ($totalReceived < $totalOrdered) {
+                                        $overallStatus = 'SEBAGIAN';
+                                        $statusClass = 'bg-yellow-100 text-yellow-800';
+                                    } else {
+                                        $overallStatus = 'SELESAI';
+                                        $statusClass = 'bg-green-100 text-green-800';
+                                    }
+                                @endphp
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusClass }}">
+                                    {{ $overallStatus }}
                                 </span>
                             </td>
+                            <td class="px-6 py-4 text-sm text-gray-800">
+                                <ul class="list-disc pl-4 space-y-1">
+                                    @foreach($restock->details as $detail)
+                                        <li>
+                                            {{ $detail->produk->nama_produk }}
+                                            <span class="text-xs text-gray-500">
+                                                ({{ $detail->jumlah_diterima }}/{{ $detail->jumlah_dipesan }})
+                                            </span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
-                                <button onclick="openReceiveModal({{ json_encode($restock->details) }})" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-100 text-blue-800 hover:bg-blue-200 disabled:opacity-50 disabled:pointer-events-none">
+                                <button 
+                                    onclick="openReceiveModal({{ json_encode($restock->details) }}, {{ $restock->id }})" 
+                                    class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-100 text-blue-800 hover:bg-blue-200 disabled:opacity-50 disabled:pointer-events-none">
                                     Terima Barang
                                 </button>
                                 <form action="{{ route('restock.destroy', $restock->id) }}" method="POST" class="inline-block" onsubmit="handleDelete(event)">
@@ -63,7 +93,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-gray-500">Tidak ada data restock.</td>
+                            <td colspan="8" class="text-center py-4 text-gray-500">Tidak ada data restock.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -92,11 +122,11 @@
 
                 <!-- Payment Method -->
                 <div>
-                    <label for="metode_pembayaran" class="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran</label>
-                    <select id="metode_pembayaran" name="metode_pembayaran" required class="py-3 px-4 block w-full border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="">Pilih Metode Pembayaran</option>
-                        <option value="Tunai">Tunai</option>
-                        <option value="Kredit">Kredit</option>
+                    <label for="status_pembayaran" class="block text-sm font-medium text-gray-700 mb-2">Status Pembayaran</label>
+                    <select id="status_pembayaran" name="status_pembayaran" required 
+                        class="py-3 px-4 block w-full border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="BELUM_LUNAS">Belum Lunas</option>
+                        <option value="LUNAS">Lunas</option>
                     </select>
                 </div>
 
@@ -117,12 +147,6 @@
                 <button type="button" id="add-product-btn" class="w-full py-2.5 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-100 text-blue-800 hover:bg-blue-200 disabled:opacity-50 disabled:pointer-events-none">
                     Tambah Produk
                 </button>
-
-                <!-- Notes/Keterangan -->
-                <div>
-                    <label for="keterangan" class="block text-sm font-medium text-gray-700 mb-2">Keterangan (Opsional)</label>
-                    <textarea id="keterangan" name="keterangan" rows="3" class="py-3 px-4 block w-full border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
-                </div>
 
                 <div class="flex justify-end gap-x-2">
                     <button type="submit" id="submit-btn" class="py-3 px-6 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none shadow-md">
@@ -168,7 +192,7 @@
 <div id="receive-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
     <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
         <h3 class="text-xl font-bold mb-4 text-gray-800">Terima Barang</h3>
-        <p class="text-gray-700 mb-6">Pilih produk dan masukkan jumlah yang diterima.</p>
+        <p class="text-gray-700 mb-6">Pilih produk yang ingin diterima dan masukkan jumlahnya.</p>
         <form id="receive-form" action="" method="POST" class="space-y-4">
             @csrf
             <input type="hidden" id="receive-restock-id" name="restock_id">
@@ -312,21 +336,74 @@
         });
 
         // Handle receive modal
-        window.openReceiveModal = (details) => {
+        window.openReceiveModal = (details, restockId) => {
             receiveProductsContainer.innerHTML = '';
-            details.forEach(detail => {
+            document.getElementById('receive-restock-id').value = restockId;
+
+            details.forEach((detail, index) => {
                 const remaining = detail.jumlah_dipesan - detail.jumlah_diterima;
-                const productReceiveItem = document.createElement('div');
-                productReceiveItem.classList.add('product-receive-item', 'space-y-2');
-                productReceiveItem.innerHTML = `
-                    <p class="text-sm font-semibold text-gray-700">${detail.produk.nama_produk} (Sisa: ${remaining} unit)</p>
-                    <div class="flex items-center gap-4">
-                        <input type="hidden" name="id_produk" value="${detail.id_produk}">
-                        <input type="number" name="jumlah_diterima" min="1" max="${remaining}" required placeholder="Jumlah Diterima" class="flex-1 py-3 px-4 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500">
-                    </div>
-                `;
-                receiveProductsContainer.appendChild(productReceiveItem);
+                if (remaining > 0) {
+                    const productReceiveItem = document.createElement('div');
+                    productReceiveItem.classList.add('product-receive-item', 'border', 'border-gray-200', 'rounded-lg', 'p-4', 'space-y-3');
+                    productReceiveItem.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" class="product-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" 
+                                       data-product-id="${detail.id_produk}" data-remaining="${remaining}">
+                                <label class="text-sm font-semibold text-gray-700">
+                                    ${detail.produk.nama_produk} 
+                                    <span class="text-xs text-gray-500">(Sisa: ${remaining} unit)</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="receive-input-section hidden">
+                            <div class="flex items-center gap-4">
+                                <input type="hidden" name="id_produk[]" value="${detail.id_produk}" disabled>
+                                <input type="number" name="jumlah_diterima[]" min="1" max="${remaining}" 
+                                    placeholder="Jumlah Diterima" disabled
+                                    class="flex-1 py-2 px-3 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500">
+                                <button type="button" class="auto-fill-btn py-2 px-3 text-xs font-medium rounded-lg border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100" 
+                                        data-max="${remaining}">
+                                    Isi Semua (${remaining})
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    receiveProductsContainer.appendChild(productReceiveItem);
+                }
             });
+
+            // Add event listeners for checkboxes
+            document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const receiveSection = this.closest('.product-receive-item').querySelector('.receive-input-section');
+                    const hiddenInput = receiveSection.querySelector('input[name="id_produk[]"]');
+                    const numberInput = receiveSection.querySelector('input[name="jumlah_diterima[]"]');
+                    
+                    if (this.checked) {
+                        receiveSection.classList.remove('hidden');
+                        hiddenInput.disabled = false;
+                        numberInput.disabled = false;
+                        numberInput.required = true;
+                    } else {
+                        receiveSection.classList.add('hidden');
+                        hiddenInput.disabled = true;
+                        numberInput.disabled = true;
+                        numberInput.required = false;
+                        numberInput.value = '';
+                    }
+                });
+            });
+
+            // Add event listeners for auto-fill buttons
+            document.querySelectorAll('.auto-fill-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const maxValue = this.getAttribute('data-max');
+                    const numberInput = this.closest('.receive-input-section').querySelector('input[name="jumlah_diterima[]"]');
+                    numberInput.value = maxValue;
+                });
+            });
+
             receiveModal.classList.remove('hidden');
             receiveModal.classList.add('flex');
         };
@@ -336,13 +413,18 @@
             receiveModal.classList.remove('flex');
         });
 
-        // You'll need to update the form action for the receive form dynamically
-        // or handle it via AJAX in a real application. This is a placeholder.
+        // Update form action for receive form dynamically
         receiveForm.addEventListener('submit', (e) => {
-            e.preventDefault();
             const restockId = document.getElementById('receive-restock-id').value;
             receiveForm.action = `/restock/${restockId}/receive`;
-            receiveForm.submit();
+            
+            // Validate that at least one product is selected
+            const checkedBoxes = document.querySelectorAll('.product-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                e.preventDefault();
+                alert('Pilih minimal satu produk untuk diterima.');
+                return false;
+            }
         });
     });
 </script>

@@ -13,9 +13,13 @@ class SupplierController extends Controller
      * Menampilkan formulir untuk membuat supplier baru.
      * Ini adalah metode yang akan menampilkan tampilan homepage/supplier/create.blade.php.
      */
-    public function create(): View
+    public function index()
     {
-        // Mengarahkan ke view yang benar sesuai dengan jalur file: homepage/supplier/create.blade.php
+        $suppliers = Supplier::all();
+        return view('homepage.supplier.index', compact('suppliers'));
+    }
+
+    public function create() {
         return view('homepage.supplier.create');
     }
 
@@ -27,24 +31,27 @@ class SupplierController extends Controller
     {
         // Validasi data yang masuk dari form
         $validatedData = $request->validate([
-            'nama_supplier' => 'required|string|max:255',
-            'nama_kontak' => 'required|string|max:255',
-            'telepon' => 'required|string|max:20',
+            'nama' => 'required|string|max:255',
+            'kontak' => 'required|string|max:255',
             'alamat' => 'nullable|string',
-            'email' => 'nullable|email|max:255',
         ]);
 
         // Membuat instance model Supplier baru dan mengisinya dengan data yang divalidasi
         $supplier = new Supplier();
-        $supplier->nama_supplier = $validatedData['nama_supplier'];
-        $supplier->nama_kontak = $validatedData['nama_kontak'];
-        $supplier->telepon = $validatedData['telepon'];
+        $supplier->nama = $validatedData['nama'];
+        $supplier->kontak = $validatedData['kontak'];
         $supplier->alamat = $validatedData['alamat'];
-        $supplier->email = $validatedData['email'];
         $supplier->save();
 
         // Redirect pengguna kembali ke halaman daftar supplier dengan pesan sukses
         return Redirect::route('suppliers.index')->with('success', 'Data supplier berhasil disimpan.');
+    }
+
+    public function destroy($id) {
+        $supplier = Supplier::findOrFail($id);
+        $supplier->delete();
+
+        return Redirect::route('suppliers.index')->with('success', 'Data berhasil dihapus.');
     }
 
     // Metode lain seperti index, show, edit, update, dan destroy dapat ditambahkan di sini.

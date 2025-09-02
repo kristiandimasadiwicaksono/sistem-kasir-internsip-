@@ -76,6 +76,9 @@ Route::post('/payment/{penjualan}/store', [PaymentController::class, 'store'])->
 Route::get('/payment/success/{id}', [PaymentController::class, 'successPage'])->name('payment.success');
 Route::middleware(['auth'])->group(function () {
     Route::resource('restock', RestockController::class)->except(['edit', 'update']);
+    Route::post('/restock/{id}/receive', [RestockController::class, 'receive'])->name('restock.receive');
 });
+Route::get('/supplier/index', [SupplierController::class, 'index'])->name('suppliers.index');
 Route::get('/supplier/create', [SupplierController::class, 'create'])->name('suppliers.create');
 Route::post('/supplier', [SupplierController::class, 'store'])->name('suppliers.store');
+Route::delete('/supplier/{id}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
