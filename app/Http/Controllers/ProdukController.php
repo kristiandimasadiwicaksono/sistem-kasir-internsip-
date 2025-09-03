@@ -23,13 +23,11 @@ class ProdukController extends Controller
         $request->validate([
             'nama_produk' => 'required|string|max:100',
             'harga' => 'required|numeric',
-            'stok' => 'required|integer',
         ]);
 
         Produk::create([
             'nama_produk' => $request->nama_produk,
             'harga' => $request->harga,
-            'stok' => $request->stok,
         ]);
 
         return redirect()->route('produk.index')->with('success', 'Produk berhasil ditambahkan');
@@ -45,14 +43,12 @@ class ProdukController extends Controller
         $request->validate([
             'nama_produk' => 'required|string|max:100',
             'harga' => 'required|numeric',
-            'stok' => 'required|integer',
         ]);
 
         $produk = Produk::findOrFail($id);
 
         $produk->nama_produk = $request->nama_produk;
         $produk->harga = $request->harga;
-        $produk->stok = $request->stok;
         $produk->save();
 
         return redirect()->route('produk.index')->with('success', 'Data berhasil diperbarui');

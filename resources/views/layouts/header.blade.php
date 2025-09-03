@@ -66,9 +66,11 @@
         @if(Auth::user()->role === 'admin')
         <a class="font-semibold text-white/80 hover:text-white transition-all duration-300 transform hover:scale-110 hover:bg-white/20 px-3 py-2 rounded-lg relative {{ request()->routeIs('restock.*') ? 'bg-white/30 text-white' : '' }}" href="{{ route('restock.index') }}">
           Restock
-          <span class="absolute top-0 right-0 inline-flex items-center justify-center size-5 text-xs font-bold text-white bg-red-500 rounded-full -translate-y-1/2 translate-x-1/2">
-            5
-          </span>
+          @if(($pendingRestock ?? 0) > 0 )
+            <span class="absolute top-0 right-0 inline-flex items-center justify-center size-5 text-xs font-bold text-white bg-red-500 rounded-full -translate-y-1/2 translate-x-1/2">
+              {{ $pendingRestock ?? 0 }}
+            </span>
+          @endif
         </a>
         @endif
       </div>

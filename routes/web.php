@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\LoginController;
+use App\Http\Controllers\ReturController;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RestockController;
@@ -82,3 +83,8 @@ Route::get('/supplier/index', [SupplierController::class, 'index'])->name('suppl
 Route::get('/supplier/create', [SupplierController::class, 'create'])->name('suppliers.create');
 Route::post('/supplier', [SupplierController::class, 'store'])->name('suppliers.store');
 Route::delete('/supplier/{id}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+Route::get('/supplier/{id}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
+Route::put('/supplier/{id}', [SupplierController::class, 'update'])->name('suppliers.update');
+
+Route::post('/restock/{id}/retur', [RestockController::class, 'retur'])->name('restock.return');
+Route::get('/restock/history/all', [RestockController::class, 'historyAll'])->name('restock.historyAll');

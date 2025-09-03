@@ -46,6 +46,28 @@ class SupplierController extends Controller
         // Redirect pengguna kembali ke halaman daftar supplier dengan pesan sukses
         return Redirect::route('suppliers.index')->with('success', 'Data supplier berhasil disimpan.');
     }
+    public function edit($id)
+    {
+        $supplier = Supplier::findOrFail($id);
+        return view('homepage.supplier.edit', compact('supplier'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $validatedData = $request->validate([
+            'nama' => 'required|string|max:255',
+            'kontak' => 'required|string|max:255',
+            'alamat' => 'nullable|string',
+        ]);
+
+        $supplier = Supplier::findOrFail($id);
+        $supplier->nama = $validatedData['nama'];
+        $supplier->kontak = $validatedData['kontak'];
+        $supplier->alamat = $validatedData['alamat'];
+        $supplier->save();
+
+        return Redirect::route('suppliers.index')->with('success', 'Data supplier berhasil diperbarui.');
+    }
 
     public function destroy($id) {
         $supplier = Supplier::findOrFail($id);

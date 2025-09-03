@@ -32,6 +32,10 @@ Tambah Supplier
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $supplier->kontak }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $supplier->alamat }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <a href="{{ route('suppliers.edit', $supplier->id) }}" 
+                        class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-200 disabled:opacity-50 disabled:pointer-events-none">
+                            Edit
+                        </a>
                         <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" class="inline-block" onsubmit="handleDelete(event)">
                             @csrf
                             @method('DELETE')

@@ -11,6 +11,7 @@
         <div class="flex justify-center gap-4 mb-8">
             <button id="tab-list" class="tab-button py-2 px-4 rounded-lg font-semibold transition-colors duration-300 bg-blue-600 text-white shadow-lg">Daftar Restock</button>
             <button id="tab-add" class="tab-button py-2 px-4 rounded-lg font-semibold transition-colors duration-300">Buat Pesanan Restock</button>
+            <button id="tab-history" class="tab-button py-2 px-4 rounded-lg font-semibold transition-colors duration-300">Riwayat Restock</button>
         </div>
 
         <!-- Restock List Tab -->
@@ -45,7 +46,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
                                 @php
-                                    // ✅ Hitung status berdasarkan restock_detail
+                                    // Hitung status berdasarkan restock_detail
                                     $totalOrdered = $restock->details->sum('jumlah_dipesan');
                                     $totalReceived = $restock->details->sum('jumlah_diterima');
                                     
@@ -82,6 +83,14 @@
                                     class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-100 text-blue-800 hover:bg-blue-200 disabled:opacity-50 disabled:pointer-events-none">
                                     Terima Barang
                                 </button>
+
+                                @if($restock->details->sum('jumlah_diterima') > 0)
+                                <button onclick="openReturnModal({{ json_encode($restock->details->where('jumlah_diterima', '>', '0')) }}, {{ $restock->id }})" class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent
+                                    bg-orange-100 text-orange-800 hover:bg-orange-200 disabled:pointer-events-none ml-2">
+                                    retur
+                                </button>
+                                @endif
+
                                 <form action="{{ route('restock.destroy', $restock->id) }}" method="POST" class="inline-block" onsubmit="handleDelete(event)">
                                     @csrf
                                     @method('DELETE')
@@ -156,6 +165,40 @@
                 </div>
             </form>
         </div>
+
+        <!-- History Restock Tab -->
+        <div id="restock-history-view" class="tab-content hidden">
+            <div class="overflow-x-auto rounded-lg shadow-sm border border-gray-200">
+                <table class="min-w-full bg-white divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Supplier</th>
+                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Produk</th>
+                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Dipesan</th>
+                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Diterima</th>
+                            <th class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Retur</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @forelse($history ?? [] as $item)
+                        <tr class="hover:bg-gray-100 transition-colors duration-200">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ \Carbon\Carbon::parse($item['tanggal'])->format('d M Y') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $item['supplier'] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{{ $item['produk'] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-center">{{ $item['jumlah_dipesan'] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-center">{{ $item['jumlah_diterima'] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 text-center">{{ $item['jumlah_retur'] }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-gray-500">Belum ada riwayat restock.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -211,221 +254,360 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const tabListBtn = document.getElementById('tab-list');
-        const tabAddBtn = document.getElementById('tab-add');
-        const restockListView = document.getElementById('restock-list-view');
-        const restockAddView = document.getElementById('restock-add-view');
-        const productsContainer = document.getElementById('products-container');
-        const addProductBtn = document.getElementById('add-product-btn');
-        const restockForm = document.getElementById('restock-form');
-        const submitBtn = document.getElementById('submit-btn');
-        const submitText = document.getElementById('submit-text');
-        const loadingSpinner = document.getElementById('loading-spinner');
-
-        const confirmationModal = document.getElementById('confirmation-modal');
-        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-        const cancelBtn = document.getElementById('cancel-btn');
-        let formToDelete = null;
-
-        const messageModal = document.getElementById('message-modal');
-        const messageTitle = document.getElementById('message-title');
-        const messageBody = document.getElementById('message-body');
-        const closeMessageBtn = document.getElementById('close-message-btn');
-
-        const receiveModal = document.getElementById('receive-modal');
-        const receiveForm = document.getElementById('receive-form');
-        const receiveProductsContainer = document.getElementById('receive-products-container');
-        const closeReceiveBtn = document.getElementById('close-receive-btn');
-
-        let productCounter = 0;
-
-        // Function to show custom message modal
-        function showMessage(title, body, type = 'success') {
-            messageTitle.textContent = title;
-            messageBody.textContent = body;
-            messageModal.classList.remove('hidden');
-            messageModal.classList.add('flex');
-
-            if (type === 'success') {
-                setTimeout(() => {
-                    messageModal.classList.add('hidden');
-                    messageModal.classList.remove('flex');
-                }, 3000);
-            }
-        }
-
-        // Function to switch tabs
-        function switchTab(view) {
-            if (view === 'list') {
-                restockListView.classList.remove('hidden');
-                restockAddView.classList.add('hidden');
-                tabListBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
-                tabAddBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
-            } else {
-                restockListView.classList.add('hidden');
-                restockAddView.classList.remove('hidden');
-                tabListBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
-                tabAddBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
-            }
-        }
-
-        // Add a new product row to the form
-        addProductBtn.addEventListener('click', () => {
-            productCounter++;
-            const newProductItem = document.createElement('div');
-            newProductItem.classList.add('product-item', 'flex', 'items-center', 'gap-4', 'mt-4');
-            newProductItem.innerHTML = `
-                <select name="products[${productCounter}][id_produk]" required class="flex-1 py-3 px-4 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500">
-                    <option value="">Pilih Produk</option>
-                    @foreach($produk as $item)
-                    <option value="{{ $item->id }}">{{ $item->nama_produk }}</option>
-                    @endforeach
+<div id="retur-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
+        <h3 class="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+            </svg>
+            Return Barang ke Supplier
+        </h3>
+        <p class="text-gray-700 mb-6">Pilih produk yang ingin dikembalikan ke supplier.</p>
+        <form id="retur-form" action="" method="POST" class="space-y-4">
+            @csrf
+            <input type="hidden" id="retur-restock-id" name="restock_id">
+            {{-- Alasan --}}
+            <div>
+                <label for="retur-reason" class="block text-sm font-medium text-gray-700 mb-2">Alasan Return</label>
+                <select id="retur-reason" name="alasan_retur" required class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Pilih Alasan</option>
+                    <option value="RUSAK">Barang Rusak</option>
+                    <option value="KADALUARSA">Kadaluarsa</option>
+                    <option value="TIDAK_SESUAI">Tidak Sesuai</option>
+                    <option value="KELEBIHAN">Kadaluarsa</option>
+                    <option value="LAINNYA">Lainnya</option>
                 </select>
-                <input type="number" name="products[${productCounter}][jumlah_dipesan]" min="1" required placeholder="Jumlah Dipesan" class="w-24 py-3 px-4 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500">
-                <button type="button" class="remove-product-btn py-2 px-3 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-red-100 text-red-800 hover:bg-red-200">
-                    Hapus
-                </button>
-            `;
-            productsContainer.appendChild(newProductItem);
+            </div>
+            {{-- Catatan Tambahan --}}
+            <div>
+                <label for="retur-notes" class="block text-sm font-medium text-gray-700 mb-2">Catatan Tambahan</label>
+                <textarea id="retur-notes" name="catatan" rows="3" 
+                    class="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Tambahkan catatan jika diperlukan..."></textarea> <!-- FIXED: ID dan format -->
+            </div>
 
-            // Add event listener to the new remove button
-            newProductItem.querySelector('.remove-product-btn').addEventListener('click', (e) => {
-                e.target.closest('.product-item').remove();
+            {{-- Jumlah --}}
+            <div id="retur-products-container" class="border-t pt-4">
+                <h4 class="text-sm font-medium text-gray-700 mb-3">Produk yang Dapat Dikembalikan</h4>
+            </div>
+
+            <div class="flex justify-end gap-x-2 mt-6">
+                <button type="button" id="close-retur-btn" class="py-2 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50">
+                    Batal
+                </button>
+                <button type="submit" class="py-2 px-4 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-orange-600 text-white hover:bg-orange-700 shadow-md">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                    </svg>
+                    Proses Return
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const tabListBtn = document.getElementById('tab-list');
+    const tabAddBtn = document.getElementById('tab-add');
+    const restockListView = document.getElementById('restock-list-view');
+    const restockAddView = document.getElementById('restock-add-view');
+    const productsContainer = document.getElementById('products-container');
+    const addProductBtn = document.getElementById('add-product-btn');
+    const restockForm = document.getElementById('restock-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitText = document.getElementById('submit-text');
+    const loadingSpinner = document.getElementById('loading-spinner');
+
+    const confirmationModal = document.getElementById('confirmation-modal');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    let formToDelete = null;
+
+    const messageModal = document.getElementById('message-modal');
+    const messageTitle = document.getElementById('message-title');
+    const messageBody = document.getElementById('message-body');
+    const closeMessageBtn = document.getElementById('close-message-btn');
+
+    const receiveModal = document.getElementById('receive-modal');
+    const receiveForm = document.getElementById('receive-form');
+    const receiveProductsContainer = document.getElementById('receive-products-container');
+    const closeReceiveBtn = document.getElementById('close-receive-btn');
+
+    const returModal = document.getElementById('retur-modal');
+    const returForm = document.getElementById('retur-form');
+    const returProductsContainer = document.getElementById('retur-products-container');
+    const closeReturnBtn = document.getElementById('close-retur-btn');
+
+    const tabHistoryBtn = document.getElementById('tab-history');
+    const restockHistoryView = document.getElementById('restock-history-view');
+
+    let productCounter = 0;
+
+    // 🔹 Function to show custom message
+    function showMessage(title, body, type = 'success') {
+        messageTitle.textContent = title;
+        messageBody.textContent = body;
+        messageModal.classList.remove('hidden');
+        messageModal.classList.add('flex');
+
+        if (type === 'success') {
+            setTimeout(() => {
+                messageModal.classList.add('hidden');
+                messageModal.classList.remove('flex');
+            }, 3000);
+        }
+    }
+
+    // 🔹 Switch tabs
+    function switchTab(view) {
+        if (view === 'list') {
+            restockListView.classList.remove('hidden');
+            restockAddView.classList.add('hidden');
+            tabListBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
+            tabAddBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
+        } else {
+            restockListView.classList.add('hidden');
+            restockAddView.classList.remove('hidden');
+            tabListBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
+            tabAddBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
+        }
+    }
+
+    // 🔹 Add product row
+    addProductBtn.addEventListener('click', () => {
+        productCounter++;
+        const newProductItem = document.createElement('div');
+        newProductItem.classList.add('product-item', 'flex', 'items-center', 'gap-4', 'mt-4');
+        newProductItem.innerHTML = `
+            <select name="products[${productCounter}][id_produk]" required class="flex-1 py-3 px-4 border border-gray-300 rounded-lg text-sm">
+                <option value="">Pilih Produk</option>
+                @foreach($produk as $item)
+                <option value="{{ $item->id }}">{{ $item->nama_produk }}</option>
+                @endforeach
+            </select>
+            <input type="number" name="products[${productCounter}][jumlah_dipesan]" min="1" required placeholder="Jumlah Dipesan" class="w-24 py-3 px-4 border border-gray-300 rounded-lg text-sm">
+            <button type="button" class="remove-product-btn py-2 px-3 text-sm font-semibold rounded-lg bg-red-100 text-red-800 hover:bg-red-200">Hapus</button>
+        `;
+        productsContainer.appendChild(newProductItem);
+
+        newProductItem.querySelector('.remove-product-btn').addEventListener('click', (e) => {
+            e.target.closest('.product-item').remove();
+        });
+    });
+
+    // 🔹 Tab listeners
+    tabListBtn.addEventListener('click', () => switchTab('list'));
+    tabAddBtn.addEventListener('click', () => switchTab('add'));
+
+    // 🔹 Form submit with loading state
+    restockForm.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitText.textContent = 'Menyimpan...';
+        loadingSpinner.classList.remove('hidden');
+    });
+
+    // 🔹 Delete confirm modal
+    window.handleDelete = (event) => {
+        event.preventDefault();
+        formToDelete = event.target.closest('form');
+        confirmationModal.classList.remove('hidden');
+        confirmationModal.classList.add('flex');
+    };
+
+    confirmDeleteBtn.addEventListener('click', () => {
+        if (formToDelete) formToDelete.submit();
+        confirmationModal.classList.add('hidden');
+        confirmationModal.classList.remove('flex');
+        formToDelete = null;
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        confirmationModal.classList.add('hidden');
+        confirmationModal.classList.remove('flex');
+        formToDelete = null;
+    });
+
+    closeMessageBtn.addEventListener('click', () => {
+        messageModal.classList.add('hidden');
+        messageModal.classList.remove('flex');
+    });
+
+    // 🔹 Open receive modal
+    window.openReceiveModal = (details, restockId) => {
+        receiveProductsContainer.innerHTML = '';
+        document.getElementById('receive-restock-id').value = restockId;
+
+        details.forEach(detail => {
+            const remaining = detail.jumlah_dipesan - detail.jumlah_diterima;
+            if (remaining > 0) {
+                const productReceiveItem = document.createElement('div');
+                productReceiveItem.classList.add('product-receive-item', 'border', 'p-4', 'rounded-lg', 'space-y-3');
+                productReceiveItem.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" class="product-checkbox w-4 h-4" data-product-id="${detail.id_produk}" data-remaining="${remaining}">
+                        <label class="text-sm font-semibold">${detail.produk.nama_produk} <span class="text-xs text-gray-500">(Sisa: ${remaining})</span></label>
+                    </div>
+                    <div class="receive-input-section hidden">
+                        <input type="hidden" name="id_produk[]" value="${detail.id_produk}" disabled>
+                        <input type="number" name="jumlah_diterima[]" min="1" max="${remaining}" placeholder="Jumlah Diterima" disabled class="py-2 px-3 border rounded-lg text-sm">
+                        <button type="button" class="auto-fill-btn text-xs px-2 py-1 border rounded" data-max="${remaining}">Isi Semua (${remaining})</button>
+                    </div>
+                `;
+                receiveProductsContainer.appendChild(productReceiveItem);
+            }
+        });
+
+        document.querySelectorAll('.product-checkbox').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const section = this.closest('.product-receive-item').querySelector('.receive-input-section');
+                const hid = section.querySelector('input[name="id_produk[]"]');
+                const num = section.querySelector('input[name="jumlah_diterima[]"]');
+                if (this.checked) {
+                    section.classList.remove('hidden');
+                    hid.disabled = false;
+                    num.disabled = false;
+                    num.required = true;
+                } else {
+                    section.classList.add('hidden');
+                    hid.disabled = true;
+                    num.disabled = true;
+                    num.required = false;
+                    num.value = '';
+                }
             });
         });
 
-        // Event listeners for tab buttons
-        tabListBtn.addEventListener('click', () => switchTab('list'));
-        tabAddBtn.addEventListener('click', () => switchTab('add'));
-
-        // Handle form submission with loading state
-        restockForm.addEventListener('submit', (e) => {
-            submitBtn.disabled = true;
-            submitText.textContent = 'Menyimpan...';
-            loadingSpinner.classList.remove('hidden');
+        document.querySelectorAll('.auto-fill-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const maxValue = this.getAttribute('data-max');
+                this.closest('.receive-input-section').querySelector('input[name="jumlah_diterima[]"]').value = maxValue;
+            });
         });
 
-        // Handle delete button click with custom confirmation modal
-        window.handleDelete = (event) => {
-            event.preventDefault();
-            formToDelete = event.target.closest('form');
-            confirmationModal.classList.remove('hidden');
-            confirmationModal.classList.add('flex');
-        };
+        receiveModal.classList.remove('hidden');
+        receiveModal.classList.add('flex');
+    };
 
-        confirmDeleteBtn.addEventListener('click', () => {
-            if (formToDelete) {
-                formToDelete.submit();
-            }
-            confirmationModal.classList.add('hidden');
-            confirmationModal.classList.remove('flex');
-            formToDelete = null;
-        });
+    closeReceiveBtn.addEventListener('click', () => {
+        receiveModal.classList.add('hidden');
+        receiveModal.classList.remove('flex');
+    });
 
-        cancelBtn.addEventListener('click', () => {
-            confirmationModal.classList.add('hidden');
-            confirmationModal.classList.remove('flex');
-            formToDelete = null;
-        });
+    receiveForm.addEventListener('submit', (e) => {
+        const restockId = document.getElementById('receive-restock-id').value;
+        receiveForm.action = `/restock/${restockId}/receive`;
+        if (document.querySelectorAll('.product-checkbox:checked').length === 0) {
+            e.preventDefault();
+            alert('Pilih minimal satu produk untuk diterima.');
+        }
+    });
 
-        closeMessageBtn.addEventListener('click', () => {
-            messageModal.classList.add('hidden');
-            messageModal.classList.remove('flex');
-        });
+    // 🔹 Open retur modal
+    window.openReturnModal = (receivedDetails, restockId) => {
+        returProductsContainer.innerHTML = '';
+        document.getElementById('retur-restock-id').value = restockId;
 
-        // Handle receive modal
-        window.openReceiveModal = (details, restockId) => {
-            receiveProductsContainer.innerHTML = '';
-            document.getElementById('receive-restock-id').value = restockId;
-
-            details.forEach((detail, index) => {
-                const remaining = detail.jumlah_dipesan - detail.jumlah_diterima;
-                if (remaining > 0) {
-                    const productReceiveItem = document.createElement('div');
-                    productReceiveItem.classList.add('product-receive-item', 'border', 'border-gray-200', 'rounded-lg', 'p-4', 'space-y-3');
-                    productReceiveItem.innerHTML = `
+        receivedDetails.forEach(detail => {
+            if (detail.jumlah_diterima > 0) {
+                const productReturnItem = document.createElement('div');
+                productReturnItem.classList.add('product-retur-item', 'border', 'p-4', 'rounded-lg', 'bg-gray-50');
+                productReturnItem.innerHTML = `
+                    <div class="product-retur-item border border-gray-200 rounded-lg p-4 space-y-3 bg-gray-50">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <input type="checkbox" class="product-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" 
-                                       data-product-id="${detail.id_produk}" data-remaining="${remaining}">
+                                <input type="checkbox" class="retur-checkbox w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500" data-product-id="${detail.id_produk}" data-available="${detail.jumlah_diterima}">
                                 <label class="text-sm font-semibold text-gray-700">
                                     ${detail.produk.nama_produk} 
-                                    <span class="text-xs text-gray-500">(Sisa: ${remaining} unit)</span>
+                                    <span class="text-xs text-gray-500">(Tersedia: ${detail.jumlah_diterima} unit)</span>
                                 </label>
                             </div>
                         </div>
-                        <div class="receive-input-section hidden">
-                            <div class="flex items-center gap-4">
-                                <input type="hidden" name="id_produk[]" value="${detail.id_produk}" disabled>
-                                <input type="number" name="jumlah_diterima[]" min="1" max="${remaining}" 
-                                    placeholder="Jumlah Diterima" disabled
-                                    class="flex-1 py-2 px-3 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500">
-                                <button type="button" class="auto-fill-btn py-2 px-3 text-xs font-medium rounded-lg border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100" 
-                                        data-max="${remaining}">
-                                    Isi Semua (${remaining})
-                                </button>
-                            </div>
+                        <div class="retur-input-section hidden flex items-center gap-4 pt-2">
+                            <input type="hidden" name="id_produk[]" value="${detail.id_produk}" disabled>
+                            <input type="number" name="jumlah_retur[]" min="1" max="${detail.jumlah_diterima}" placeholder="Jumlah Return" disabled class="flex-1 py-2 px-3 border border-gray-300 rounded-lg text-sm focus:border-orange-500 focus:ring-orange-500">
+                            <button type="button" class="auto-retur-btn py-2 px-3 text-xs font-medium rounded-lg border border-gray-300 bg-orange-50 text-orange-700 hover:bg-orange-100" data-max="${detail.jumlah_diterima}">
+                                Isi Semua (${detail.jumlah_diterima})
+                            </button>
                         </div>
-                    `;
-                    receiveProductsContainer.appendChild(productReceiveItem);
-                }
-            });
-
-            // Add event listeners for checkboxes
-            document.querySelectorAll('.product-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const receiveSection = this.closest('.product-receive-item').querySelector('.receive-input-section');
-                    const hiddenInput = receiveSection.querySelector('input[name="id_produk[]"]');
-                    const numberInput = receiveSection.querySelector('input[name="jumlah_diterima[]"]');
-                    
-                    if (this.checked) {
-                        receiveSection.classList.remove('hidden');
-                        hiddenInput.disabled = false;
-                        numberInput.disabled = false;
-                        numberInput.required = true;
-                    } else {
-                        receiveSection.classList.add('hidden');
-                        hiddenInput.disabled = true;
-                        numberInput.disabled = true;
-                        numberInput.required = false;
-                        numberInput.value = '';
-                    }
-                });
-            });
-
-            // Add event listeners for auto-fill buttons
-            document.querySelectorAll('.auto-fill-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const maxValue = this.getAttribute('data-max');
-                    const numberInput = this.closest('.receive-input-section').querySelector('input[name="jumlah_diterima[]"]');
-                    numberInput.value = maxValue;
-                });
-            });
-
-            receiveModal.classList.remove('hidden');
-            receiveModal.classList.add('flex');
-        };
-
-        closeReceiveBtn.addEventListener('click', () => {
-            receiveModal.classList.add('hidden');
-            receiveModal.classList.remove('flex');
-        });
-
-        // Update form action for receive form dynamically
-        receiveForm.addEventListener('submit', (e) => {
-            const restockId = document.getElementById('receive-restock-id').value;
-            receiveForm.action = `/restock/${restockId}/receive`;
-            
-            // Validate that at least one product is selected
-            const checkedBoxes = document.querySelectorAll('.product-checkbox:checked');
-            if (checkedBoxes.length === 0) {
-                e.preventDefault();
-                alert('Pilih minimal satu produk untuk diterima.');
-                return false;
+                    </div>
+                `;
+                returProductsContainer.appendChild(productReturnItem);
             }
         });
+
+        document.querySelectorAll('.retur-checkbox').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const section = this.closest('.product-retur-item').querySelector('.retur-input-section');
+                const hid = section.querySelector('input[name="id_produk[]"]');
+                const num = section.querySelector('input[name="jumlah_retur[]"]');
+                if (this.checked) {
+                    section.classList.remove('hidden');
+                    hid.disabled = false;
+                    num.disabled = false;
+                    num.required = true;
+                } else {
+                    section.classList.add('hidden');
+                    hid.disabled = true;
+                    num.disabled = true;
+                    num.required = false;
+                    num.value = '';
+                }
+            });
+        });
+
+        document.querySelectorAll('.auto-retur-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const maxValue = this.getAttribute('data-max');
+                this.closest('.retur-input-section').querySelector('input[name="jumlah_retur[]"]').value = maxValue;
+            });
+        });
+
+        returModal.classList.remove('hidden');
+        returModal.classList.add('flex');
+    };
+
+    closeReturnBtn.addEventListener('click', () => {
+        returModal.classList.add('hidden');
+        returModal.classList.remove('flex');
     });
+
+    returForm.addEventListener('submit', (e) => {
+        const restockId = document.getElementById('retur-restock-id').value;
+        returForm.action = `/restock/${restockId}/retur`;
+        if (document.querySelectorAll('.retur-checkbox:checked').length === 0) {
+            e.preventDefault();
+            alert('Pilih minimal satu produk untuk dikembalikan.');
+        }
+    });
+
+    function switchTab(view) {
+        if (view === 'list') {
+            restockListView.classList.remove('hidden');
+            restockAddView.classList.add('hidden');
+            restockHistoryView.classList.add('hidden');
+            tabListBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
+            tabAddBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
+            tabHistoryBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
+        } else if (view === 'add') {
+            restockListView.classList.add('hidden');
+            restockAddView.classList.remove('hidden');
+            restockHistoryView.classList.add('hidden');
+            tabListBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
+            tabAddBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
+            tabHistoryBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
+        } else if (view === 'history') {
+            restockListView.classList.add('hidden');
+            restockAddView.classList.add('hidden');
+            restockHistoryView.classList.remove('hidden');
+            tabListBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
+            tabAddBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
+            tabHistoryBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
+        }
+    }
+
+    tabHistoryBtn.addEventListener('click', () => switchTab('history'));
+});
 </script>
+
 @endsection

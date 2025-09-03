@@ -12,7 +12,6 @@ class Produk extends Model
     protected $fillable = [
         'nama_produk',
         'harga',
-        'stok'
     ];
     public $timestamps = false;
 }
