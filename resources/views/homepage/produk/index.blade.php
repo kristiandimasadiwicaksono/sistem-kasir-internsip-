@@ -16,7 +16,8 @@
                 </div>
                 @if(Auth::user()->role === 'admin')
                 <div class="flex items-center gap-3">
-                    <a class="py-2.5 px-4 inline-flex items-center gap-x-2 text-sm rounded-lg border border-transparent bg-green-600 text-white hover:bg-green-700" href="">
+                    <a class="py-2.5 px-4 inline-flex items-center gap-x-2 text-sm rounded-lg border border-transparent bg-green-600 text-white hover:bg-green-700"
+                    href="{{ route('produk.import') }}">
                         Import Data
                     </a>
                     <a class="py-2.5 px-4 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 transition-colors"

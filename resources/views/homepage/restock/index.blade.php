@@ -168,6 +168,13 @@
 
         <!-- History Restock Tab -->
         <div id="restock-history-view" class="tab-content hidden">
+            <div class="flex justify-end mb-4">
+                <a href="{{ route('restock.export') }}"
+                class="py-2 px-4 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg 
+                        bg-green-600 text-white hover:bg-green-700 shadow-md">
+                    Export Excel
+                </a>
+            </div>
             <div class="overflow-x-auto rounded-lg shadow-sm border border-gray-200">
                 <table class="min-w-full bg-white divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -451,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="receive-input-section hidden">
                         <input type="hidden" name="id_produk[]" value="${detail.id_produk}" disabled>
                         <input type="number" name="jumlah_diterima[]" min="1" max="${remaining}" placeholder="Jumlah Diterima" disabled class="py-2 px-3 border rounded-lg text-sm">
-                        <button type="button" class="auto-fill-btn text-xs px-2 py-1 border rounded" data-max="${remaining}">Isi Semua (${remaining})</button>
+                        <button type="button" class="auto-fill-btn py-2 px-3 text-xs font-medium rounded-lg border border-gray-300 bg-orange-50 text-orange-700 hover:bg-orange-100" data-max="${remaining}">Isi Semua (${remaining})</button>
                     </div>
                 `;
                 receiveProductsContainer.appendChild(productReceiveItem);

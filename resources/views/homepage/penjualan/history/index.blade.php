@@ -13,6 +13,14 @@
                     <h2 class="text-2xl font-bold text-gray-800">History Penjualan</h2>
                     <p class="mt-1 text-sm text-gray-600">Daftar riwayat transaksi penjualan Anda.</p>
                 </div>
+                <!-- Export Dropdown -->
+                <div class="relative inline-block text-left">
+                    <div>
+                        <a href="{{ route('history.export.excel') }}" class="inline-flex justify-center items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-700 focus:outline-none">
+                            Export
+                        </a>
+                    </div>
+                </div>
                 <!-- Optional: Add a search bar or filter here -->
             </div>
             <!-- End Header Section -->

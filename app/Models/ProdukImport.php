@@ -13,7 +13,23 @@ class ProdukImport implements ToModel, WithHeadingRow
     {
         return new produk([
             'nama_produk'   => $row['nama_produk'],
+            'stok'          => 0,   
             'harga'         => $row['harga']
         ]);
+    }
+
+    public function rules() {
+        return [
+            '*.nama_produk' => 'required|string|max:100',
+            '*.harga'       => 'required|numeric|min:0'
+        ];
+    }
+
+    public function customValidationMessages() {
+        return [
+            '*.nama_produk.required' => 'Nama produk wajib diisi',
+            '*.harga.required' => 'Harga wajib diisi',
+            '*.harga.numeric' => 'Harga harus berupa angka',
+        ];
     }
 }

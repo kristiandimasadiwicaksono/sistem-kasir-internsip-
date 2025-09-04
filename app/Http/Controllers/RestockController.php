@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use Log;
 use App\Models\Produk;
 use App\Models\Restock;
-use App\Models\RestockDetail;
 use App\Models\Supplier;
+use Illuminate\Http\Request;
+use App\Models\RestockDetail;
+use App\Models\RestockExport;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 use App\Models\ReturBarang; // Added for the new retur method
 use App\Models\ReturBarangDetail; // Added for the new retur method
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class RestockController extends Controller
 {
@@ -224,5 +226,9 @@ class RestockController extends Controller
             $restock->delete();
         });
         return redirect()->route('restock.index')->with('success', 'Restock berhasil dihapus.');
+    }
+
+    public function export() {
+        return Excel::download(new RestockExport, 'riwayat-restock.xlsx');
     }
 }

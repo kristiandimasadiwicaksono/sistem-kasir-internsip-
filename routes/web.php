@@ -12,6 +12,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PenjualanController;
 use App\Http\Controllers\PenjualanDetailController;
 use App\Http\Controllers\HistoryPenjualanController;
+use App\Models\HistoryExport;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,7 +48,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group( function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::resource('produk', ProdukController::class);
+    Route::resource('produk', ProdukController::class)->except(['show']);
     Route::resource('penjualan', PenjualanController::class)->only(['index', 'create', 'store', 'destroy']);
     
     Route::prefix('penjualan/{id_penjualan}')->group(function () {
@@ -76,8 +77,11 @@ Route::post('/payment/cashless/{id}/success', [PaymentController::class, 'cashle
 Route::post('/payment/{penjualan}/store', [PaymentController::class, 'store'])->name('payment.store');
 Route::get('/payment/success/{id}', [PaymentController::class, 'successPage'])->name('payment.success');
 Route::middleware(['auth'])->group(function () {
+    Route::get('/restock/export', [RestockController::class, 'export'])->name('restock.export');
     Route::resource('restock', RestockController::class)->except(['edit', 'update']);
     Route::post('/restock/{id}/receive', [RestockController::class, 'receive'])->name('restock.receive');
+    Route::post('/restock/{id}/retur', [RestockController::class, 'retur'])->name('restock.return');
+    Route::get('/restock/history/all', [RestockController::class, 'historyAll'])->name('restock.historyAll');
 });
 Route::get('/supplier/index', [SupplierController::class, 'index'])->name('suppliers.index');
 Route::get('/supplier/create', [SupplierController::class, 'create'])->name('suppliers.create');
@@ -86,5 +90,9 @@ Route::delete('/supplier/{id}', [SupplierController::class, 'destroy'])->name('s
 Route::get('/supplier/{id}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
 Route::put('/supplier/{id}', [SupplierController::class, 'update'])->name('suppliers.update');
 
-Route::post('/restock/{id}/retur', [RestockController::class, 'retur'])->name('restock.return');
-Route::get('/restock/history/all', [RestockController::class, 'historyAll'])->name('restock.historyAll');
+Route::post('/produk/import', [ProdukController::class, 'import'])->name('produk.import.store');
+Route::get('/produk/import', function() {
+    return view('homepage.produk.import'); // ini view form upload
+})->name('produk.import');
+
+Route::get('/history/export/excel', [HistoryPenjualanController::class, 'exportExcel'])->name('history.export.excel');
