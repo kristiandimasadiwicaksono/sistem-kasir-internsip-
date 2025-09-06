@@ -11,54 +11,55 @@
                     Berikut ringkasan aktivitas toko Anda.
                 </p>
             </div>
-
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Penjualan Hari Ini -->
                 <div class="bg-white rounded-xl shadow-md p-4 flex items-center justify-between border-b-2 border-blue-500 transition-transform transform hover:scale-105">
                     <div class="space-y-0.5">
                         <p class="text-xs font-semibold text-gray-500 uppercase">Penjualan Hari Ini</p>
                         <span class="text-2xl font-bold text-gray-800">{{ $penjualanHariIni ?? 0 }}</span>
                     </div>
                     <div class="p-2 bg-blue-100 text-blue-500 rounded-full">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0v6a2 2 0 002 2h2a2 2 0 002-2v-6m-4-2h6a2 2 0 002-2V7a2 2 0 00-2-2h-6a2 2 0 00-2 2v5a2 2 0 002 2z"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-6 h-6">
+                        <path d="M6 2a2 2 0 0 0-2 2v18l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V4a2 2 0 0 0-2-2H6z"/>
                         </svg>
                     </div>
                 </div>
 
+                <!-- Total Produk -->
                 <div class="bg-white rounded-xl shadow-md p-4 flex items-center justify-between border-b-2 border-indigo-500 transition-transform transform hover:scale-105">
                     <div class="space-y-0.5">
                         <p class="text-xs font-semibold text-gray-500 uppercase">Total Produk</p>
                         <span class="text-2xl font-bold text-gray-800">{{ $totalProduk ?? 0 }}</span>
                     </div>
                     <div class="p-2 bg-indigo-100 text-indigo-500 rounded-full">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v-1a4 4 0 014-4h4a4 4 0 014 4v1m-6 2l-6-6m6 6l6-6m-12 6a4 4 0 01-4-4v-1a4 4 0 014-4h4a4 4 0 014 4v1a4 4 0 01-4 4H8z"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-6 h-6">
+                        <path d="M21 7.5l-9-4.5-9 4.5V18l9 4.5 9-4.5V7.5z"/>
                         </svg>
                     </div>
                 </div>
 
+                <!-- Penjualan Bulan Ini -->
                 <div class="bg-white rounded-xl shadow-md p-4 flex items-center justify-between border-b-2 border-green-500 transition-transform transform hover:scale-105">
                     <div class="space-y-0.5">
                         <p class="text-xs font-semibold text-gray-500 uppercase">Penjualan Bulan Ini</p>
                         <span class="text-2xl font-bold text-gray-800">RP {{ number_format($penjualanBulanIni ?? 0, 0, ',', '.') }}</span>
                     </div>
                     <div class="p-2 bg-green-100 text-green-500 rounded-full">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2V8z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6a2 2 0 00-2 2v1a2 2 0 002 2 2 2 0 002-2V8a2 2 0 00-2-2z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2a10 10 0 100 20 10 10 0 000-20z"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-6 h-6">
+                        <path d="M3 17h2v-6H3v6zm4 0h2V7H7v10zm4 0h2V3h-2v14zm4 0h2v-4h-2v4zm4 0h2V9h-2v8z"/>
                         </svg>
                     </div>
                 </div>
 
+                <!-- Total Transaksi -->
                 <div class="bg-white rounded-xl shadow-md p-4 flex items-center justify-between border-b-2 border-yellow-500 transition-transform transform hover:scale-105">
                     <div class="space-y-0.5">
                         <p class="text-xs font-semibold text-gray-500 uppercase">Total Transaksi</p>
                         <span class="text-2xl font-bold text-gray-800">{{ $totalTransaksi }}</span>
                     </div>
                     <div class="p-2 bg-yellow-100 text-yellow-500 rounded-full">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13a.75.75 0 01.75-.75h2.25a.75.75 0 01.75.75v10a.75.75 0 01-.75.75h-2.25a.75.75 0 01-.75-.75m-6-13a.75.75 0 01.75-.75h2.25a.75.75 0 01.75.75v10a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75m-3-13a.75.75 0 01.75-.75h2.25a.75.75 0 01.75.75v10a.75.75 0 01-.75.75H3.75a.75.75 0 01-.75-.75"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-6 h-6">
+                        <path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6zm10 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
                         </svg>
                     </div>
                 </div>

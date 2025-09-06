@@ -68,7 +68,7 @@
                         Ingat saya
                     </label>
                 </div>
-                <a href="#" class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
+                <a href="{{ route('password.request') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
                     Lupa Kata Sandi?
                 </a>
             </div>

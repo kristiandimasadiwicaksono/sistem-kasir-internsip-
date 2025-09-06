@@ -1,18 +1,20 @@
 <?php
 
+use App\Models\HistoryExport;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ReturController;
+use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RestockController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PenjualanController;
+use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\PenjualanDetailController;
 use App\Http\Controllers\HistoryPenjualanController;
-use App\Models\HistoryExport;
 
 /*
 |--------------------------------------------------------------------------
@@ -96,3 +98,9 @@ Route::get('/produk/import', function() {
 })->name('produk.import');
 
 Route::get('/history/export/excel', [HistoryPenjualanController::class, 'exportExcel'])->name('history.export.excel');
+
+Route::get('forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+
+Route::get('reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+Route::post('reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
