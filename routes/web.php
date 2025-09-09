@@ -31,6 +31,24 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
+
+// Route untuk verifikasi email
+Route::get('/email/verify', function () {
+    return view('auth.verify-email');
+})->middleware('auth')->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill(); // tandai email verified
+    return redirect('/dashboard');
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+Route::post('/email/verification-notification', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('message', 'Link verifikasi sudah dikirim!');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+
 Route::get('/login', function () {
     return view('auth.login');
 })->name('login')->middleware('guest');
@@ -49,7 +67,9 @@ Route::post('/update-password', [LoginController::class, 'updatePassword'])->mid
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group( function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->middleware(['auth', 'verified'])
+        ->name('dashboard');
     Route::resource('produk', ProdukController::class)->except(['show']);
     Route::resource('penjualan', PenjualanController::class)->only(['index', 'create', 'store', 'destroy']);
     

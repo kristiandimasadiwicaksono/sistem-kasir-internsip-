@@ -67,7 +67,7 @@ class LoginController extends Controller
         }
 
         return back()->withErrors([
-            'email' => 'Alamat email atau kata sandi yang diberikan tidak cocok dengan data kami.'
+            'email' => 'Alamat email atau kata sandi salah.'
         ])->onlyInput('email');
     }
 
