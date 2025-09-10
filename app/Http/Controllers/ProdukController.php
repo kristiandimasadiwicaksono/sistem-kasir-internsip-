@@ -9,10 +9,22 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ProdukController extends Controller
 {
-    public function index() {
-        // Menggunakan paginate() untuk mengambil data dengan paginasi
-        // Angka 5 menunjukkan jumlah item per halaman.
-        $produk = Produk::paginate(5); 
+    public function index(Request $request) {
+        $query = Produk::query();
+
+        if ($request->filled('search')) {
+            $query->where('nama_produk', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->sort === 'asc') {
+            $query->orderBy('nama_produk', 'asc');
+        } elseif ($request->sort === 'desc') {
+            $query->orderBy('nama_produk','desc');
+        } else {
+            $query->orderBy('id', 'desc');
+        }
+
+        $produk = $query->paginate(5)->withQueryString();
 
         return view('homepage.produk.index', compact('produk'));
     }

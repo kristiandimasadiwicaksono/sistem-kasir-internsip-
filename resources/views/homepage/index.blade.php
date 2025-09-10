@@ -32,9 +32,9 @@
                         <span class="text-2xl font-bold text-gray-800">{{ $totalProduk ?? 0 }}</span>
                     </div>
                     <div class="p-2 bg-indigo-100 text-indigo-500 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-6 h-6">
-                        <path d="M21 7.5l-9-4.5-9 4.5V18l9 4.5 9-4.5V7.5z"/>
-                        </svg>
+                            <svg class="w-7 h-7 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                            </svg>
                     </div>
                 </div>
 

@@ -39,11 +39,6 @@ Route::get('/email/verify', function () {
     return view('auth.verify-email');
 })->middleware('auth')->name('verification.notice');
 
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill(); // tandai email verified
-    return redirect('/dashboard');
-})->middleware(['auth', 'signed'])->name('verification.verify');
-
 Route::post('/email/verification-notification', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
     return back()->with('message', 'Link verifikasi sudah dikirim!');
@@ -58,6 +53,11 @@ Route::post('/login', [LoginController::class, 'authenticate'])->name('login.pos
 Route::get('auth/google', [LoginController::class, 'redirectToGoogle'])->name('login.google');
 Route::get('auth/google/callback', [LoginController::class, 'handleGoogleCallback']);
 
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill(); // tandai email verified
+    return redirect()->route('verification.notice')->with('verified', true);
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
 Route::get('/change-password', function() {
     return view('auth.change-password');
 })->middleware('auth')->name('user.change-password');
@@ -68,7 +68,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group( function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->middleware(['auth', 'verified'])
+        ->middleware(['auth'])
         ->name('dashboard');
     Route::resource('produk', ProdukController::class)->except(['show']);
     Route::resource('penjualan', PenjualanController::class)->only(['index', 'create', 'store', 'destroy']);

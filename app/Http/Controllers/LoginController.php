@@ -30,7 +30,8 @@ class LoginController extends Controller
                         'email' => $googleUser->email,
                         'google_id' => $googleUser->id,
                         'password' => null, 
-                        'role' => 'user'
+                        'role' => 'user',
+                        'email_verified_at' => null
                     ]);
                 } else {
                     $user->google_id = $googleUser->id;
@@ -38,6 +39,11 @@ class LoginController extends Controller
                 }
             }
             Auth::login($user, true);
+
+            if (is_null($user->email_verified_at)) {
+                return redirect()->route('verification.notice');
+            }
+
             return $this->redirectBasedOnRole();
 
         } catch (\Exception $e) {
@@ -60,9 +66,14 @@ class LoginController extends Controller
             ])->onlyInput('email');
         }
 
+        if ($user && is_null($user->email_verified_at)) {
+            return back()->withErrors([
+                'email' => 'Email kamu belum diverifikasi. Silakan cek email untuk verifikasi.'
+            ])->onlyInput('email');
+        }
+
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            
             return $this->redirectBasedOnRole();
         }
 
